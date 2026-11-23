@@ -2,64 +2,157 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RotateCw, Sparkles, Sliders, Check, Shirt, Layers, Box, Move } from 'lucide-react';
+import {
+  RotateCw,
+  Sliders,
+  Check,
+  Shirt,
+  Box,
+  Move,
+  Eye,
+  Type,
+  Hash,
+  Sparkles,
+  Layers,
+  Palette
+} from 'lucide-react';
 
 const GARMENT_MODELS = [
   {
     id: 'hoodie',
     name: 'Heavyweight Pullover Hoodie (380 GSM)',
+    shortName: 'Pullover Hoodie',
+    fabric: '380 GSM Organic Cotton Fleece',
     file: '/models/hoodie.glb',
     scaleMultiplier: 1.0,
-    yOffset: 0
+    frontCenterY: -0.17,
+    frontWidth: 0.52,
+    frontHeight: 0.44,
+    backCenterY: -0.16,
+    backWidth: 0.52,
+    backHeight: 0.50
   },
   {
     id: 'shirt',
     name: 'Collegiate Athletic Tee (240 GSM)',
+    shortName: 'Athletic Tee',
+    fabric: '240 GSM Combed Ring-Spun Cotton',
     file: '/models/shirt_baked.glb',
     scaleMultiplier: 1.0,
-    yOffset: 0
+    frontCenterY: 0.05,
+    frontWidth: 0.48,
+    frontHeight: 0.42,
+    backCenterY: 0.08,
+    backWidth: 0.48,
+    backHeight: 0.48
   }
 ];
 
 const COLOR_SWATCHES = [
-  { name: 'MerchX Forest Green', hex: '#00644E', textOnDark: true },
-  { name: 'Heather Cream / Ivory', hex: '#EBE5D8', textOnDark: false },
-  { name: 'Midnight Charcoal', hex: '#181818', textOnDark: true },
-  { name: 'Collegiate Navy', hex: '#0F2537', textOnDark: true },
-  { name: 'Varsity Crimson', hex: '#801424', textOnDark: true }
+  {
+    id: 'green',
+    name: 'MerchX Heritage Green',
+    hex: '#00644E',
+    badge: 'Signature',
+    textOnDark: true,
+    primaryText: '#FFFFFF',
+    accentText: '#E6C364',
+    outlineText: '#003328'
+  },
+  {
+    id: 'white',
+    name: 'Pristine Chalk White',
+    hex: '#FAF8F5',
+    badge: 'Classic',
+    textOnDark: false,
+    primaryText: '#00644E',
+    accentText: '#B8860B',
+    outlineText: '#E8E3D7'
+  },
+  {
+    id: 'black',
+    name: 'Midnight Pitch Black',
+    hex: '#141414',
+    badge: 'Stealth',
+    textOnDark: true,
+    primaryText: '#FFFFFF',
+    accentText: '#00B388',
+    outlineText: '#262626'
+  },
+  {
+    id: 'navy',
+    name: 'Collegiate Navy',
+    hex: '#0B1B2B',
+    badge: 'Varsity',
+    textOnDark: true,
+    primaryText: '#FFFFFF',
+    accentText: '#E5A823',
+    outlineText: '#050E18'
+  },
+  {
+    id: 'crimson',
+    name: 'Varsity Crimson',
+    hex: '#5E0E1B',
+    badge: 'Heritage',
+    textOnDark: true,
+    primaryText: '#FFFFFF',
+    accentText: '#D4AF37',
+    outlineText: '#36060E'
+  }
 ];
 
 export function ThreeCustomizerMockup() {
   const mountRef = useRef(null);
   const [activeGarment, setActiveGarment] = useState(GARMENT_MODELS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
+
+  // Front customization state
   const [institutionName, setInstitutionName] = useState('JAMIA');
   const [subText, setSubText] = useState('MILLIA ISLAMIA');
   const [estYear, setEstYear] = useState('EST. 1920');
-  const [autoRotate, setAutoRotate] = useState(true);
+
+  // Back customization state
+  const [enableBackPrint, setEnableBackPrint] = useState(true);
+  const [backName, setBackName] = useState('JAMIA');
+  const [backNumber, setBackNumber] = useState('20');
+  const [backSub, setBackSub] = useState('NEW DELHI');
+
+  // Active control tab: 'front' | 'back' | 'fabric'
+  const [activeTab, setActiveTab] = useState('front');
+
+  // Viewer controls state
+  const [autoRotate, setAutoRotate] = useState(false);
   const [loadingModel, setLoadingModel] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [currentView, setCurrentView] = useState('front');
 
-  // References for Three.js
+  // Three.js instances refs
   const sceneRef = useRef(null);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const controlsRef = useRef(null);
   const currentModelRef = useRef(null);
-  const chestDecalRef = useRef(null);
+  const frontDecalMeshRef = useRef(null);
+  const backDecalMeshRef = useRef(null);
+  const targetRotationYRef = useRef(0);
+  const autoRotateRef = useRef(false);
 
-  // Generate dynamic canvas texture for the chest print
-  const createChestTexture = (color, name, sub, year) => {
+  // Sync autoRotateRef
+  useEffect(() => {
+    autoRotateRef.current = autoRotate;
+  }, [autoRotate]);
+
+  // 1. Generate High-Resolution Front Chest Canvas Texture
+  const createFrontTexture = (color, name, sub, year) => {
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = 1024;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const isDark = color.textOnDark;
-    const textColor = isDark ? '#FFFFFF' : '#004636';
-    const accentColor = isDark ? '#D4AF37' : '#00644E';
-    const outlineColor = isDark ? '#004636' : '#FFFFFF';
+    const textColor = color.primaryText;
+    const accentColor = color.accentText;
+    const outlineColor = color.outlineText;
 
     const centerX = 512;
     const centerY = 500;
@@ -69,65 +162,190 @@ export function ThreeCustomizerMockup() {
     ctx.textBaseline = 'middle';
 
     // Arched Collegiate Top Text
-    const textToArch = (name || 'MERCHX').toUpperCase();
-    const archRadius = 380;
-    const totalAngle = Math.min(Math.PI * 0.45, (textToArch.length * Math.PI) / 26);
-    const startAngle = -Math.PI / 2 - totalAngle / 2;
-    const angleStep = textToArch.length > 1 ? totalAngle / (textToArch.length - 1) : 0;
+    const textToArch = (name || 'JAMIA').toUpperCase().trim();
+    if (textToArch.length > 0) {
+      const archRadius = 380;
+      // Spread angle based on text length
+      const maxSpread = Math.PI * 0.42;
+      const anglePerChar = Math.min(0.08, maxSpread / Math.max(1, textToArch.length));
+      const totalAngle = Math.min(maxSpread, (textToArch.length - 1) * anglePerChar);
+      const startAngle = -Math.PI / 2 - totalAngle / 2;
+      const angleStep = textToArch.length > 1 ? totalAngle / (textToArch.length - 1) : 0;
 
-    ctx.font = '900 94px "Barlow Condensed", sans-serif';
+      // Font size scales gracefully with length
+      const fontSize = textToArch.length > 10 ? 82 : textToArch.length > 7 ? 94 : 108;
+      ctx.font = `900 ${fontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
-    for (let i = 0; i < textToArch.length; i++) {
-      const char = textToArch[i];
-      const angle = textToArch.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
+      for (let i = 0; i < textToArch.length; i++) {
+        const char = textToArch[i];
+        const angle = textToArch.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
-      ctx.save();
-      ctx.translate(centerX, centerY + 80);
-      ctx.rotate(angle + Math.PI / 2);
-      ctx.translate(0, -archRadius);
+        ctx.save();
+        ctx.translate(centerX, centerY + 100);
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.translate(0, -archRadius);
 
+        // Deep drop/outline shadow
+        ctx.strokeStyle = outlineColor;
+        ctx.lineWidth = 14;
+        ctx.lineJoin = 'miter';
+        ctx.miterLimit = 2;
+        ctx.strokeText(char, 0, 0);
+
+        // Main fill
+        ctx.fillStyle = textColor;
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // Subtitle Text (e.g. MILLIA ISLAMIA)
+    if (sub && sub.trim().length > 0) {
+      const subString = sub.toUpperCase().trim();
+      const subFontSize = subString.length > 14 ? 44 : 52;
+      ctx.font = `800 ${subFontSize}px "Barlow Condensed", -apple-system, sans-serif`;
+
+      // Subtle contrast shadow
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 14;
-      ctx.strokeText(char, 0, 0);
+      ctx.lineWidth = 8;
+      ctx.strokeText(subString, centerX, centerY + 85);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(char, 0, 0);
-      ctx.restore();
+      ctx.fillText(subString, centerX, centerY + 85);
     }
 
-    // Subtitle
-    if (sub) {
-      ctx.font = '800 48px "Barlow Condensed", sans-serif';
-      ctx.fillStyle = textColor;
-      ctx.fillText(sub.toUpperCase(), centerX, centerY + 65);
-    }
+    // Established Year or Tag (e.g. — EST. 1920 —)
+    if (year && year.trim().length > 0) {
+      const yearString = year.toUpperCase().trim();
+      ctx.font = '700 28px "Inter", -apple-system, sans-serif';
 
-    // Est. Year
-    if (year) {
-      ctx.font = '700 28px "Inter", sans-serif';
       ctx.fillStyle = accentColor;
-      ctx.fillText(`— ${year.toUpperCase()} —`, centerX, centerY + 115);
+      ctx.fillText(`★  ${yearString}  ★`, centerX, centerY + 145);
     }
 
     ctx.restore();
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
     texture.needsUpdate = true;
     return texture;
   };
 
-  // Apply color to all meshes of the model
+  // 2. Generate High-Resolution Back Varsity Canvas Texture
+  const createBackTexture = (color, name, number, sub) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const textColor = color.primaryText;
+    const accentColor = color.accentText;
+    const outlineColor = color.outlineText;
+
+    const centerX = 512;
+    const centerY = 512;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    // Top Player/Institution Arch on upper back
+    const nameString = (name || 'JAMIA').toUpperCase().trim();
+    if (nameString.length > 0) {
+      const archRadius = 400;
+      const maxSpread = Math.PI * 0.40;
+      const anglePerChar = Math.min(0.075, maxSpread / Math.max(1, nameString.length));
+      const totalAngle = Math.min(maxSpread, (nameString.length - 1) * anglePerChar);
+      const startAngle = -Math.PI / 2 - totalAngle / 2;
+      const angleStep = nameString.length > 1 ? totalAngle / (nameString.length - 1) : 0;
+
+      const nameFontSize = nameString.length > 10 ? 76 : 90;
+      ctx.font = `900 ${nameFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
+
+      for (let i = 0; i < nameString.length; i++) {
+        const char = nameString[i];
+        const angle = nameString.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
+
+        ctx.save();
+        ctx.translate(centerX, centerY - 60);
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.translate(0, -archRadius);
+
+        ctx.strokeStyle = outlineColor;
+        ctx.lineWidth = 14;
+        ctx.strokeText(char, 0, 0);
+
+        ctx.fillStyle = textColor;
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
+      }
+    }
+
+    // Giant Collegiate Varsity Back Number (e.g. "20" or "07")
+    if (number && number.trim().length > 0) {
+      const numString = number.trim();
+      ctx.font = '900 290px "Barlow Condensed", "Impact", -apple-system, sans-serif';
+
+      // Heavy 2-Tone Varsity Outline
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = 24;
+      ctx.strokeText(numString, centerX, centerY + 30);
+
+      ctx.strokeStyle = accentColor;
+      ctx.lineWidth = 12;
+      ctx.strokeText(numString, centerX, centerY + 30);
+
+      ctx.fillStyle = textColor;
+      ctx.fillText(numString, centerX, centerY + 30);
+    }
+
+    // Bottom Subtitle (e.g. "NEW DELHI" or "VARSITY ATHLETICS")
+    if (sub && sub.trim().length > 0) {
+      const subString = sub.toUpperCase().trim();
+      ctx.font = '800 40px "Barlow Condensed", -apple-system, sans-serif';
+
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = 8;
+      ctx.strokeText(subString, centerX, centerY + 240);
+
+      ctx.fillStyle = accentColor;
+      ctx.fillText(subString, centerX, centerY + 240);
+    }
+
+    ctx.restore();
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = 8;
+    texture.needsUpdate = true;
+    return texture;
+  };
+
+  // 3. Apply Realistic PBR Fleece Fabric Properties
   const applyColorToModel = (model, hexColor) => {
     if (!model) return;
     const threeColor = new THREE.Color(hexColor);
 
     model.traverse((child) => {
       if (child.isMesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
+        if (child.name === 'frontDecalMesh' || child.name === 'backDecalMesh') return;
 
-        if (child.name === 'chestDecal') return; // skip decal
+        // Keep metallic zipper hardware chrome/silver
+        const isHardware =
+          child.parent?.name === 'Slider_1' ||
+          child.name.includes('_mesh_1') ||
+          child.name.includes('_mesh_2') ||
+          child.name.toLowerCase().includes('slider');
+
+        if (isHardware && child.material) {
+          child.material.metalness = 0.9;
+          child.material.roughness = 0.25;
+          child.material.color.setHex(0xd4d4d4);
+          child.material.needsUpdate = true;
+          return;
+        }
 
         if (child.material) {
           if (!child.userData.originalMaterialCloned) {
@@ -135,15 +353,74 @@ export function ThreeCustomizerMockup() {
             child.userData.originalMaterialCloned = true;
           }
           child.material.color.copy(threeColor);
-          child.material.roughness = 0.75;
-          child.material.metalness = 0.05;
+          // High-grade fleece matte finish (anti-shine)
+          child.material.roughness = 0.88;
+          child.material.metalness = 0.02;
           child.material.needsUpdate = true;
         }
       }
     });
   };
 
-  // Main Three.js Scene Setup
+  // 4. Build Surface-Conforming Decal Mesh via Raycasting
+  // This projects each grid vertex directly onto the garment's 3D mesh surface,
+  // following fabric folds and curves with ZERO floating and ZERO clipping.
+  const createConformingDecal = (garment, modelWrapper, targetMeshes, isFront, texture, scale) => {
+    const width = isFront ? garment.frontWidth : garment.backWidth;
+    const height = isFront ? garment.frontHeight : garment.backHeight;
+    const centerY = isFront ? garment.frontCenterY : garment.backCenterY;
+    const segs = 28;
+
+    const geo = new THREE.PlaneGeometry(width, height, segs, segs);
+    const posAttr = geo.attributes.position;
+    const raycaster = new THREE.Raycaster();
+    const origin = new THREE.Vector3();
+    const dir = new THREE.Vector3(0, 0, isFront ? -1 : 1);
+
+    // Normal offset in model-local units (approx 3.5mm above fabric in world units)
+    const normalOffset = (isFront ? 0.0035 : -0.0035) / (scale || 1.0);
+
+    for (let i = 0; i < posAttr.count; i++) {
+      // For back print, flip horizontal lookup so text is not mirrored when facing back
+      const lx = isFront ? posAttr.getX(i) : -posAttr.getX(i);
+      const ly = posAttr.getY(i);
+
+      const wx = lx;
+      const wy = centerY + ly;
+      origin.set(wx, wy, isFront ? 1.5 : -1.5);
+      raycaster.set(origin, dir);
+
+      const intersects = raycaster.intersectObjects(targetMeshes, false);
+      if (intersects.length > 0) {
+        const hit = intersects[0];
+        // Convert world hit point into modelWrapper's local space
+        const localPt = modelWrapper.worldToLocal(hit.point.clone());
+        posAttr.setXYZ(i, localPt.x, localPt.y, localPt.z + normalOffset);
+      }
+    }
+
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4,
+      roughness: 0.75,
+      metalness: 0.02,
+      side: THREE.DoubleSide
+    });
+
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = isFront ? 'frontDecalMesh' : 'backDecalMesh';
+    mesh.renderOrder = isFront ? 10 : 11;
+    return mesh;
+  };
+
+  // 5. Initialize Three.js Scene, Camera, Lights, and Orbit Controls
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -151,81 +428,87 @@ export function ThreeCustomizerMockup() {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // 1. Scene
+    // Scene
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
-    // 2. Camera
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0.15, 3.2);
+    // Camera
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    camera.position.set(0, 0.08, 3.25);
     cameraRef.current = camera;
 
-    // 3. Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    // Renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.15;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
-    // 4. OrbitControls with Touch Optimization
+    // OrbitControls
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
+    controls.dampingFactor = 0.07;
     controls.enablePan = false;
-    controls.minDistance = 1.8;
-    controls.maxDistance = 5.5;
-    controls.maxPolarAngle = Math.PI / 1.8;
-    controls.minPolarAngle = Math.PI / 4;
-    // Allow standard page scrolling on mobile via two fingers
+    controls.minDistance = 1.7;
+    controls.maxDistance = 5.2;
+    controls.maxPolarAngle = Math.PI / 1.75;
+    controls.minPolarAngle = Math.PI / 4.2;
     controls.touches = {
       ONE: THREE.TOUCH.ROTATE,
       TWO: THREE.TOUCH.DOLLY_PAN
     };
     controlsRef.current = controls;
 
-    // 5. Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    // Studio Lighting Rig
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.4);
-    keyLight.position.set(4, 6, 5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    keyLight.position.set(3.5, 5.5, 4.5);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xa5c4b5, 1.2);
-    fillLight.position.set(-5, 0, 4);
+    const fillLight = new THREE.DirectionalLight(0xb0d4c8, 1.25);
+    fillLight.position.set(-4.5, 1.5, 3.5);
     scene.add(fillLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffffff, 1.8);
-    rimLight.position.set(0, 5, -5);
-    scene.add(rimLight);
+    const backRimLight = new THREE.DirectionalLight(0xffffff, 2.0);
+    backRimLight.position.set(0, 4.5, -4.5);
+    scene.add(backRimLight);
 
-    // Soft Studio Shadow Ground
-    const shadowGeo = new THREE.CircleGeometry(1.6, 64);
+    // Soft Studio Ground Shadow
+    const shadowGeo = new THREE.CircleGeometry(1.65, 64);
     const shadowMat = new THREE.MeshBasicMaterial({
       color: 0x000000,
       transparent: true,
-      opacity: 0.3
+      opacity: 0.35
     });
     const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     shadowMesh.rotation.x = -Math.PI / 2;
-    shadowMesh.position.y = -1.25;
+    shadowMesh.position.y = -1.22;
     scene.add(shadowMesh);
 
-    // 6. Animation Loop
+    // Animation & Smooth Rotation Loop
     let animationFrameId;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      if (autoRotate && controlsRef.current) {
-        if (currentModelRef.current) {
-          currentModelRef.current.rotation.y += 0.006;
+      if (currentModelRef.current) {
+        if (autoRotateRef.current) {
+          currentModelRef.current.rotation.y += 0.007;
+          targetRotationYRef.current = currentModelRef.current.rotation.y;
+        } else {
+          // Smoothly lerp towards target orientation when user flips views
+          const diff = targetRotationYRef.current - currentModelRef.current.rotation.y;
+          if (Math.abs(diff) > 0.002) {
+            currentModelRef.current.rotation.y += diff * 0.09;
+          }
         }
       }
 
@@ -234,7 +517,7 @@ export function ThreeCustomizerMockup() {
     };
     animate();
 
-    // 7. Resize Handler
+    // Resize Observer
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
@@ -245,9 +528,17 @@ export function ThreeCustomizerMockup() {
     };
     window.addEventListener('resize', handleResize);
 
+    const handlePointerDown = () => {
+      if (currentModelRef.current) {
+        targetRotationYRef.current = currentModelRef.current.rotation.y;
+      }
+    };
+    container.addEventListener('pointerdown', handlePointerDown);
+
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      container.removeEventListener('pointerdown', handlePointerDown);
       controls.dispose();
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
@@ -256,7 +547,7 @@ export function ThreeCustomizerMockup() {
     };
   }, []);
 
-  // Load 3D GLB Model
+  // 6. Load 3D Garment Model & Attach Conforming Prints
   useEffect(() => {
     const scene = sceneRef.current;
     if (!scene) return;
@@ -264,11 +555,12 @@ export function ThreeCustomizerMockup() {
     setLoadingModel(true);
     setLoadError(false);
 
-    // Remove existing model if present
     if (currentModelRef.current) {
       scene.remove(currentModelRef.current);
       currentModelRef.current = null;
     }
+    frontDecalMeshRef.current = null;
+    backDecalMeshRef.current = null;
 
     const loader = new GLTFLoader();
 
@@ -277,17 +569,15 @@ export function ThreeCustomizerMockup() {
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-fit & Center the Model in view
+        // Auto-center and normalize size
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
 
-        // Center pivot
         model.position.x = -center.x;
-        model.position.y = -center.y + (activeGarment.yOffset || 0);
+        model.position.y = -center.y;
         model.position.z = -center.z;
 
-        // Normalize scale to fit 2.2 units
         const maxAxis = Math.max(size.x, size.y, size.z);
         const targetSize = 2.15 * activeGarment.scaleMultiplier;
         const scale = targetSize / maxAxis;
@@ -296,27 +586,32 @@ export function ThreeCustomizerMockup() {
         modelWrapper.scale.set(scale, scale, scale);
         modelWrapper.add(model);
         modelWrapper.position.y = 0;
+        modelWrapper.updateMatrixWorld(true);
 
-        // Add Chest Decal Plane
-        const decalTexture = createChestTexture(selectedColor, institutionName, subText, estYear);
-        const decalMat = new THREE.MeshBasicMaterial({
-          map: decalTexture,
-          transparent: true,
-          depthWrite: false,
-          polygonOffset: true,
-          polygonOffsetFactor: -3
+        // Gather fabric meshes for surface raycast
+        const clothMeshes = [];
+        model.traverse((child) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+            clothMeshes.push(child);
+          }
         });
-        const decalGeo = new THREE.PlaneGeometry(0.85, 0.85);
-        const decalMesh = new THREE.Mesh(decalGeo, decalMat);
-        decalMesh.name = 'chestDecal';
 
-        // Position on chest
-        decalMesh.position.set(0, 0.22, 0.42);
-        decalMesh.rotation.x = -0.05;
-        modelWrapper.add(decalMesh);
-        chestDecalRef.current = decalMesh;
+        // 1. Front Conforming Decal
+        const frontTex = createFrontTexture(selectedColor, institutionName, subText, estYear);
+        const frontMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, true, frontTex, scale);
+        modelWrapper.add(frontMesh);
+        frontDecalMeshRef.current = frontMesh;
 
-        // Apply selected colorway
+        // 2. Back Conforming Decal
+        const backTex = createBackTexture(selectedColor, backName, backNumber, backSub);
+        const backMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, false, backTex, scale);
+        backMesh.visible = enableBackPrint;
+        modelWrapper.add(backMesh);
+        backDecalMeshRef.current = backMesh;
+
+        // Apply realistic dyed fleece color
         applyColorToModel(model, selectedColor.hex);
 
         scene.add(modelWrapper);
@@ -332,42 +627,69 @@ export function ThreeCustomizerMockup() {
     );
   }, [activeGarment]);
 
-  // Update color when swatch changes
+  // 7. Update Fabric Color
   useEffect(() => {
     if (currentModelRef.current) {
       applyColorToModel(currentModelRef.current, selectedColor.hex);
     }
-    updateDecal();
+    updateFrontDecalTexture();
+    updateBackDecalTexture();
   }, [selectedColor]);
 
-  // Update Decal Texture when text inputs change
-  const updateDecal = () => {
-    if (!chestDecalRef.current) return;
-    const newTex = createChestTexture(selectedColor, institutionName, subText, estYear);
-    if (chestDecalRef.current.material.map) {
-      chestDecalRef.current.material.map.dispose();
+  // 8. Update Front Decal Texture
+  const updateFrontDecalTexture = () => {
+    if (!frontDecalMeshRef.current) return;
+    const newTex = createFrontTexture(selectedColor, institutionName, subText, estYear);
+    if (frontDecalMeshRef.current.material.map) {
+      frontDecalMeshRef.current.material.map.dispose();
     }
-    chestDecalRef.current.material.map = newTex;
-    chestDecalRef.current.material.needsUpdate = true;
+    frontDecalMeshRef.current.material.map = newTex;
+    frontDecalMeshRef.current.material.needsUpdate = true;
   };
 
   useEffect(() => {
-    updateDecal();
+    updateFrontDecalTexture();
   }, [institutionName, subText, estYear]);
 
-  // Camera presets
-  const handleSetView = (angle) => {
-    setAutoRotate(false);
-    if (!controlsRef.current || !currentModelRef.current) return;
+  // 9. Update Back Decal Texture & Visibility
+  const updateBackDecalTexture = () => {
+    if (!backDecalMeshRef.current) return;
+    backDecalMeshRef.current.visible = enableBackPrint;
+    const newTex = createBackTexture(selectedColor, backName, backNumber, backSub);
+    if (backDecalMeshRef.current.material.map) {
+      backDecalMeshRef.current.material.map.dispose();
+    }
+    backDecalMeshRef.current.material.map = newTex;
+    backDecalMeshRef.current.material.needsUpdate = true;
+  };
 
-    if (angle === 'front') {
-      currentModelRef.current.rotation.y = 0;
+  useEffect(() => {
+    updateBackDecalTexture();
+  }, [enableBackPrint, backName, backNumber, backSub]);
+
+  // 10. Camera / Orientation Preset Buttons
+  const handleSetView = (view) => {
+    setAutoRotate(false);
+    setCurrentView(view);
+    if (controlsRef.current) {
       controlsRef.current.reset();
-      cameraRef.current.position.set(0, 0.15, 3.2);
-    } else if (angle === 'angle') {
-      currentModelRef.current.rotation.y = Math.PI / 4;
-    } else if (angle === 'back') {
-      currentModelRef.current.rotation.y = Math.PI;
+    }
+    if (view === 'front') {
+      targetRotationYRef.current = 0;
+    } else if (view === 'back') {
+      targetRotationYRef.current = Math.PI;
+    } else if (view === 'angle') {
+      targetRotationYRef.current = Math.PI / 4;
+    }
+  };
+
+  // Switch tab and auto-orient model to relevant side
+  const handleSelectTab = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'front') {
+      handleSetView('front');
+    } else if (tab === 'back') {
+      handleSetView('back');
     }
   };
 
@@ -378,31 +700,44 @@ export function ThreeCustomizerMockup() {
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <span className="w-2.5 h-2.5 rounded-full bg-green-primary animate-pulse shrink-0" />
           <span className="font-heading text-base sm:text-lg font-bold uppercase tracking-wider text-white truncate">
-            Digital Apparel Studio
+            3D Collegiate Customizer Studio
           </span>
           <span className="hidden sm:inline-block px-2 py-0.5 rounded-xs bg-green-primary/20 text-green-primary text-[10px] font-extrabold uppercase tracking-widest border border-green-primary/40 shrink-0">
-            True 3D GLB · Concept
+            Surface Conformed · Front & Back Print
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
           <Box className="w-4 h-4 text-green-primary" />
-          <span className="hidden xs:inline">Real-time 3D Engine</span>
+          <span className="hidden xs:inline">Three.js PBR Engine</span>
         </div>
       </div>
 
       {/* Main Studio Viewport & Customizer Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] lg:min-h-[640px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] lg:min-h-[660px]">
         {/* Left: 3D Three.js Viewport (7 cols) */}
         <div className="lg:col-span-7 relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col justify-between overflow-hidden">
           {/* Subtle Ambient Radial Lighting */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(0,100,78,0.18),transparent_70%)] pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(0,100,78,0.22),transparent_70%)] pointer-events-none" />
 
           {/* Loading Indicator */}
           {loadingModel && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/80 backdrop-blur-sm space-y-3 p-4 text-center">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/85 backdrop-blur-sm space-y-3 p-4 text-center">
               <div className="w-10 h-10 border-4 border-green-primary border-t-transparent rounded-full animate-spin" />
               <p className="font-heading text-sm uppercase tracking-wider font-bold text-white">
-                Loading 3D {activeGarment.name.split(' ')[1]} Model...
+                Preparing High-Res 3D {activeGarment.shortName}...
+              </p>
+              <p className="text-[11px] text-neutral-400">Projecting surface-conformed prints...</p>
+            </div>
+          )}
+
+          {/* Load Error Fallback */}
+          {loadError && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/90 p-6 text-center space-y-3">
+              <p className="font-heading text-base uppercase font-bold text-red-400">
+                Failed to load 3D model
+              </p>
+              <p className="text-xs text-neutral-400 max-w-sm">
+                Please ensure WebGL is enabled in your browser or refresh the page.
               </p>
             </div>
           )}
@@ -410,11 +745,11 @@ export function ThreeCustomizerMockup() {
           {/* Three.js Canvas Container - Responsive Height */}
           <div
             ref={mountRef}
-            className="w-full h-[340px] sm:h-[440px] lg:h-[640px] cursor-grab active:cursor-grabbing"
-            title="Click and drag to orbit in 3D. Scroll wheel to zoom."
+            className="w-full h-[360px] sm:h-[460px] lg:h-[660px] cursor-grab active:cursor-grabbing"
+            title="Click and drag to orbit in 360°. Scroll to zoom."
           />
 
-          {/* Viewport Floating Top Controls */}
+          {/* Viewport Floating Top Controls: Auto Rotate & Current Angle Tag */}
           <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-10">
             <button
               type="button"
@@ -428,6 +763,10 @@ export function ThreeCustomizerMockup() {
               <RotateCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
               <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
             </button>
+
+            <span className="hidden sm:inline-flex items-center px-2 py-1 rounded-xs bg-neutral-900/80 text-neutral-400 text-[10px] font-mono uppercase tracking-widest border border-neutral-800">
+              View: {currentView.toUpperCase()}
+            </span>
           </div>
 
           {/* Mobile Gestures Guidance Chip */}
@@ -447,149 +786,400 @@ export function ThreeCustomizerMockup() {
               <button
                 type="button"
                 onClick={() => handleSetView('front')}
-                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                  currentView === 'front'
+                    ? 'bg-green-primary text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                }`}
               >
-                Front
+                Front View
               </button>
               <button
                 type="button"
                 onClick={() => handleSetView('angle')}
-                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                  currentView === 'angle'
+                    ? 'bg-green-primary text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                }`}
               >
-                Angle
+                3/4 Angle
               </button>
               <button
                 type="button"
                 onClick={() => handleSetView('back')}
-                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                  currentView === 'back'
+                    ? 'bg-green-primary text-white'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                }`}
               >
-                Back
+                Back View
               </button>
             </div>
           </div>
         </div>
 
         {/* Right: Customization Controls Panel (5 cols) */}
-        <div className="lg:col-span-5 p-4 sm:p-6 lg:p-8 bg-neutral-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-800">
-          <div className="space-y-5 sm:space-y-6">
+        <div className="lg:col-span-5 p-4 sm:p-6 lg:p-7 bg-neutral-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-800 overflow-y-auto max-h-[660px]">
+          <div className="space-y-5">
+            {/* Header */}
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-primary mb-1">
                 <Sliders className="w-4 h-4" />
-                <span>Parametric Studio</span>
+                <span>Parametric Customizer</span>
               </div>
               <h3 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
                 Customize 3D Garment
               </h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Experience how collegiate institutions can co-create apparel in real time.
+                Real-time graphics mapped directly to the garment surface. No floating text.
               </p>
             </div>
 
-            {/* 1. Select 3D Model Silhouette */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                1. Select 3D Garment Mesh
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {GARMENT_MODELS.map((garment) => (
+            {/* Customizer Tabs: Front Chest / Back Print / Fabric & Color */}
+            <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-950 rounded-xs border border-neutral-800">
+              <button
+                type="button"
+                onClick={() => handleSelectTab('front')}
+                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'front'
+                    ? 'bg-green-primary text-white shadow-md'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                }`}
+              >
+                <Type className="w-3.5 h-3.5" />
+                <span>Front</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectTab('back')}
+                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'back'
+                    ? 'bg-green-primary text-white shadow-md'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                }`}
+              >
+                <Hash className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('fabric')}
+                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                  activeTab === 'fabric'
+                    ? 'bg-green-primary text-white shadow-md'
+                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                }`}
+              >
+                <Palette className="w-3.5 h-3.5" />
+                <span>Fabric</span>
+              </button>
+            </div>
+
+            {/* TAB CONTENT 1: FRONT CHEST PRINT */}
+            {activeTab === 'front' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                      Collegiate Arched Name
+                    </label>
+                    <span className="text-[10px] text-neutral-500 font-mono">Max 14 chars</span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={14}
+                    value={institutionName}
+                    onChange={(e) => setInstitutionName(e.target.value)}
+                    placeholder="e.g. JAMIA, STANFORD, IIT"
+                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                      Subtitle Banner
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={18}
+                      value={subText}
+                      onChange={(e) => setSubText(e.target.value)}
+                      placeholder="e.g. MILLIA ISLAMIA"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                      Year / Tagline
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={12}
+                      value={estYear}
+                      onChange={(e) => setEstYear(e.target.value)}
+                      placeholder="e.g. EST. 1920"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick Presets for Front */}
+                <div>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
+                    Quick University Presets:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { name: 'JAMIA', sub: 'MILLIA ISLAMIA', year: 'EST. 1920' },
+                      { name: 'ENGINEERING', sub: 'FACULTY OF ENGG', year: 'CLASS OF 2025' },
+                      { name: 'MERCHX', sub: 'ATHLETIC HERITAGE', year: 'NEW DELHI' }
+                    ].map((preset, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setInstitutionName(preset.name);
+                          setSubText(preset.sub);
+                          setEstYear(preset.year);
+                        }}
+                        className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB CONTENT 2: BACK VARSITY PRINT */}
+            {activeTab === 'back' && (
+              <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Enable / Disable Back Print Toggle */}
+                <div className="flex items-center justify-between p-3 bg-neutral-950 rounded-xs border border-neutral-800">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-200">
+                      Enable Back Print
+                    </span>
+                    <span className="text-[10px] text-green-primary font-mono uppercase bg-green-primary/10 px-1.5 py-0.5 rounded-xs border border-green-primary/30">
+                      Varsity Style
+                    </span>
+                  </div>
                   <button
-                    key={garment.id}
                     type="button"
-                    onClick={() => setActiveGarment(garment)}
-                    className={`p-2.5 sm:p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
-                      activeGarment.id === garment.id
-                        ? 'bg-neutral-800 border-green-primary ring-1 ring-green-primary text-white'
-                        : 'bg-neutral-950/60 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                    onClick={() => setEnableBackPrint(!enableBackPrint)}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                      enableBackPrint ? 'bg-green-primary' : 'bg-neutral-800'
                     }`}
                   >
-                    <Shirt className={`w-5 h-5 shrink-0 ${activeGarment.id === garment.id ? 'text-green-primary' : 'text-neutral-500'}`} />
-                    <div className="truncate">
-                      <p className="font-heading text-xs font-bold uppercase tracking-wider truncate">
-                        {garment.id === 'hoodie' ? 'Pullover Hoodie' : 'Athletic Tee'}
-                      </p>
-                      <p className="text-[10px] text-neutral-500 truncate">
-                        {garment.id === 'hoodie' ? '380 GSM Fleece' : '240 GSM Cotton'}
-                      </p>
+                    <div
+                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                        enableBackPrint ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {enableBackPrint && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                          Player / Alumni Name
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={12}
+                          value={backName}
+                          onChange={(e) => setBackName(e.target.value)}
+                          placeholder="e.g. JAMIA, VARIS, SENIOR"
+                          className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                          Varsity No.
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={2}
+                          value={backNumber}
+                          onChange={(e) => setBackNumber(e.target.value)}
+                          placeholder="e.g. 20, 07"
+                          className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-black tracking-widest text-center rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                        />
+                      </div>
                     </div>
-                  </button>
-                ))}
-              </div>
-            </div>
 
-            {/* 2. Color Swatches */}
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                2. Fabric Color: <span className="text-green-primary">{selectedColor.name}</span>
-              </label>
-              <div className="flex flex-wrap gap-2.5 sm:gap-3">
-                {COLOR_SWATCHES.map((color) => (
-                  <button
-                    key={color.hex}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 transition-transform ${
-                      selectedColor.hex === color.hex
-                        ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
-                        : 'border-transparent hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color.hex }}
-                    title={color.name}
-                    aria-label={`Select color ${color.name}`}
-                  >
-                    {selectedColor.hex === color.hex && (
-                      <Check className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto ${color.textOnDark ? 'text-white' : 'text-charcoal'}`} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                        Back Subtitle / City
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={18}
+                        value={backSub}
+                        onChange={(e) => setBackSub(e.target.value)}
+                        placeholder="e.g. NEW DELHI, VARSITY 25"
+                        className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                      />
+                    </div>
 
-            {/* 3. Real-Time Typography Customization */}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                  3. Collegiate Arched Name
-                </label>
-                <input
-                  type="text"
-                  maxLength={14}
-                  value={institutionName}
-                  onChange={(e) => setInstitutionName(e.target.value)}
-                  placeholder="e.g. JAMIA, STANFORD, IIT DELHI"
-                  className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                />
+                    {/* Quick Presets for Back */}
+                    <div>
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
+                        Popular Back Number Presets:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { name: 'JAMIA', num: '20', sub: 'EST. 1920' },
+                          { name: 'SENIOR', num: '25', sub: 'ENGINEERING' },
+                          { name: 'CAPTAIN', num: '07', sub: 'NEW DELHI' },
+                          { name: 'ALUMNI', num: '99', sub: 'VARSITY CLUB' }
+                        ].map((preset, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setBackName(preset.name);
+                              setBackNumber(preset.num);
+                              setBackSub(preset.sub);
+                            }}
+                            className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
+                          >
+                            #{preset.num} {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
+            )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* TAB CONTENT 3: FABRIC COLOR & GARMENT MESH */}
+            {activeTab === 'fabric' && (
+              <div className="space-y-5 animate-in fade-in duration-200">
+                {/* 1. Select 3D Garment Silhouette */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Subtitle
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                    Garment Silhouette
                   </label>
-                  <input
-                    type="text"
-                    maxLength={16}
-                    value={subText}
-                    onChange={(e) => setInstitutionSub(e.target.value)}
-                    placeholder="e.g. MILLIA ISLAMIA"
-                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                  />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {GARMENT_MODELS.map((garment) => (
+                      <button
+                        key={garment.id}
+                        type="button"
+                        onClick={() => setActiveGarment(garment)}
+                        className={`p-2.5 sm:p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
+                          activeGarment.id === garment.id
+                            ? 'bg-neutral-800 border-green-primary ring-1 ring-green-primary text-white'
+                            : 'bg-neutral-950/60 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                        }`}
+                      >
+                        <Shirt
+                          className={`w-5 h-5 shrink-0 ${
+                            activeGarment.id === garment.id ? 'text-green-primary' : 'text-neutral-500'
+                          }`}
+                        />
+                        <div className="truncate">
+                          <p className="font-heading text-xs font-bold uppercase tracking-wider truncate">
+                            {garment.shortName}
+                          </p>
+                          <p className="text-[10px] text-neutral-500 truncate">{garment.fabric}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
+                {/* 2. Color Swatches (Green, White, Black prioritized) */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                    Year / Tag
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={12}
-                    value={estYear}
-                    onChange={(e) => setEstYear(e.target.value)}
-                    placeholder="e.g. EST. 1920"
-                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                      Fabric Colorway
+                    </label>
+                    <span className="text-xs font-bold text-green-primary">{selectedColor.name}</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                    {COLOR_SWATCHES.map((color) => (
+                      <button
+                        key={color.id}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`p-2.5 rounded-xs border flex sm:flex-col items-center justify-between sm:justify-center gap-2 transition-all ${
+                          selectedColor.id === color.id
+                            ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
+                            : 'bg-neutral-950/80 border-neutral-800 hover:border-neutral-700'
+                        }`}
+                      >
+                        <div
+                          className="w-7 h-7 rounded-full border border-neutral-600 shadow-md flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: color.hex }}
+                        >
+                          {selectedColor.id === color.id && (
+                            <Check
+                              className={`w-3.5 h-3.5 ${
+                                color.textOnDark ? 'text-white' : 'text-charcoal'
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <div className="text-left sm:text-center min-w-0">
+                          <p className="font-heading text-[11px] font-bold uppercase truncate">
+                            {color.badge}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {/* Quick Colorway Switcher (always visible at bottom of tab for convenience) */}
+            {activeTab !== 'fabric' && (
+              <div className="pt-2 border-t border-neutral-800/80">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                    Quick Colorway:
+                  </span>
+                  <span className="text-[11px] text-green-primary font-semibold">
+                    {selectedColor.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {COLOR_SWATCHES.map((color) => (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                        selectedColor.id === color.id
+                          ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
+                          : 'border-transparent hover:scale-105'
+                      }`}
+                      style={{ backgroundColor: color.hex }}
+                      title={color.name}
+                      aria-label={`Select color ${color.name}`}
+                    >
+                      {selectedColor.id === color.id && (
+                        <Check
+                          className={`w-3.5 h-3.5 mx-auto ${
+                            color.textOnDark ? 'text-white' : 'text-charcoal'
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Caption & Disclaimer (Brief Rule 3) */}
