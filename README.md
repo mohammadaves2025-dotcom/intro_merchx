@@ -217,3 +217,5 @@ It never displays a false positive success.
 - [ ] Obtain Resend API key and configure `RESEND_API_KEY` and `CONTACT_TO_EMAIL`.
 - [ ] Replace any placeholder photos in `src/assets/placeholder/` with high-resolution photography.
 
+#   i n t r o _ m e r c h x  
+ 
