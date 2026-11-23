@@ -134,7 +134,7 @@ export function Footer() {
 
         {/* Big Tagline Banner */}
         <div className="py-8 my-6 flex flex-col md:flex-row items-baseline justify-between gap-4 border-b border-neutral-800">
-          <div className="font-heading text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-neutral-600 select-none">
+          <div className="font-heading text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-neutral-600 select-none break-words">
             WEAR YOUR <span className="text-neutral-300">IDENTITY.</span>
           </div>
           <span className="text-xs uppercase tracking-widest text-green-primary font-bold">

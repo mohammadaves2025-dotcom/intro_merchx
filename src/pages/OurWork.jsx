@@ -117,19 +117,19 @@ export default function OurWork() {
                 </span>
               </div>
 
-              <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white leading-none">
+              <h2 className="font-heading text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white leading-tight md:leading-none">
                 Bring MerchX to Your Campus
               </h2>
 
-              <p className="mt-6 text-base sm:text-lg text-neutral-300 leading-relaxed">
+              <p className="mt-4 sm:mt-6 text-sm sm:text-lg text-neutral-300 leading-relaxed">
                 We are actively onboarding university student councils, athletic departments, alumni associations, and institutional leaders for the upcoming academic year.
               </p>
 
-              <div className="mt-10 flex flex-wrap justify-center gap-4">
-                <CTAButton to="/partner" variant="primary" size="lg">
+              <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 max-w-md sm:max-w-none mx-auto">
+                <CTAButton to="/partner" variant="primary" size="lg" className="w-full sm:w-auto">
                   Submit Institutional Enquiry
                 </CTAButton>
-                <CTAButton to="/what-we-do" variant="outline-light" size="lg">
+                <CTAButton to="/what-we-do" variant="outline-light" size="lg" className="w-full sm:w-auto">
                   Explore Services
                 </CTAButton>
               </div>

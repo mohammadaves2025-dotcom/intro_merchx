@@ -1,221 +1,300 @@
-# MerchX — Corporate Website
+<div align="center">
 
-> **Official Tagline:** *Wear Your Identity.*  
-> **Brand Identity:** University Merchandise, Apparel, E-commerce and Fashion Technology.
+# MERCHX — CORPORATE PLATFORM
+### *Wear Your Identity.*
 
-A modern, high-performance corporate website built for **MerchX** as an independent venture. Positioned as a B2B merchandise-solutions and fashion-tech platform for universities, student communities, sports clubs, and institutions across India.
+**The Turnkey University Merchandise & 3D Fashion-Tech Ecosystem**
 
----
+[![React](https://img.shields.io/badge/React-19.0-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4.0-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Three.js](https://img.shields.io/badge/Three.js-WebGL_3D-black?style=for-the-badge&logo=three.js&logoColor=white)](https://threejs.org/)
+[![Vercel](https://img.shields.io/badge/Vercel-Serverless-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com/)
+[![License](https://img.shields.io/badge/License-Proprietary-00644E?style=for-the-badge)](LICENSE)
 
-## 1. Tech Stack
+[Live JMI Storefront](https://merch-x-jmi.vercel.app/) • [Architecture](#-architecture--design-system) • [3D Engine](#-threejs-3d-customizer-engine) • [Data Schemas](#-data-driven-content-guide) • [Deployment](#-deployment-guide)
 
-- **Framework:** React 19 + Vite 6
-- **Styling:** Tailwind CSS v4 (`@tailwindcss/vite`) with custom `@theme` brand tokens
-- **Routing:** React Router v7 with route-level code splitting (`React.lazy` + `Suspense`)
-- **3D & Graphics:** Three.js (interactive 3D garment customization studio with real-time fabric rendering and dynamic canvas decals)
-- **Icons:** Lucide React
-- **SEO & Meta:** React Helmet Async (per-page title, meta descriptions, Open Graph, Twitter cards, canonical tags, and XML sitemaps)
-- **Email & API:** Vercel Serverless Function (`api/contact.js`) powered by Resend
-- **Language:** Plain JavaScript (ESM / JSX)
+</div>
 
 ---
 
-## 2. Brand Palette & Typography
+## 📌 Executive Overview
 
-All colors are defined as Tailwind v4 tokens in `src/index.css`:
+**MerchX** is a student-led university merchandise and fashion-tech venture bridging collegiate pride with premium apparel engineering. 
 
-| Token | Hex | Role |
-| :--- | :--- | :--- |
-| `green-primary` | `#00644E` | Signature MerchX Kelly/Forest Green |
-| `green-dark` | `#004636` | Deep green accent & button hover |
-| `ivory` | `#FAF7F0` | Warm editorial background band |
-| `cream` | `#F2EDE0` | Card borders, secondary containers |
-| `beige` | `#E4DAC4` | Subtle borders, structural dividers |
-| `charcoal` | `#1B1B1B` | Dominant text & dark section bands |
-| `grey` | `#6B6F6C` | Muted secondary body copy |
-| `white` | `#FFFFFF` | Primary backgrounds and high contrast |
+This platform serves as the **official corporate B2B presence** for institutional administrators, collegiate athletic departments, student unions, campus societies, incubators, and investors. It stands distinct from individual consumer storefronts by providing:
 
-### Typography
-- **Headings:** `Barlow Condensed` (700 Bold / 800 Extra-Bold / 900 Black, uppercase)
-- **Body:** `Inter` (400 Regular / 500 Medium / 600 Semi-Bold)
-- Loaded via Google Fonts with `display=swap` in `index.html`.
+* **End-to-End Turnkey Capabilities:** From creative identity extraction and collection design to ethical manufacturing coordination, quality inspection, and campus distribution.
+* **Proprietary 3D Fashion-Tech:** Interactive WebGL 3D customization studio allowing campus stakeholders to co-create garments, preview authentic arched lettering, and simulate physical drape.
+* **Zero Inventory Financial Risk:** Managed pre-order campaign models and batch manufacturing eliminate deadstock risks for university departments.
+* **Institutional Integrity:** Clear separation between independent venture initiatives and official university endorsements.
 
 ---
 
-## 3. Project Structure
+## 🎨 Architecture & Design System
+
+The corporate website is crafted with an athletic, structured visual rhythm inspired by premier institutional sportswear brands, rendered in MerchX’s signature **Kelly/Forest Green & Athletic Charcoal** identity.
+
+### Brand Palette (Tailwind CSS v4 Tokens)
+
+| Token | Hex Value | Role & Usage |
+| :--- | :---: | :--- |
+| `--color-green-primary` | `#00644E` | **Signature MerchX Kelly/Forest Green:** Primary CTA buttons, active accents, focus rings |
+| `--color-green-dark` | `#004636` | **Deep Forest:** Button hover states, dark text on cream |
+| `--color-charcoal` | `#1B1B1B` | **Athletic Charcoal:** Dark section bands (Hero, Services, Portfolio, Footer) |
+| `--color-ivory` | `#FAF7F0` | **Warm Ivory:** Editorial story bands, alternating section rhythm |
+| `--color-cream` | `#F2EDE0` | **Soft Cream:** Secondary container fills, chip badges, image placeholders |
+| `--color-beige` | `#E4DAC4` | **Structural Beige:** 1px borders, subtle dividers |
+| `--color-grey` | `#6B6F6C` | **Muted Grey:** Secondary body copy, metadata timestamps |
+| `--color-white` | `#FFFFFF` | **Pure White:** Standard backgrounds, high-contrast typography |
+
+### Typography Hierarchy
+* **Headlines:** `Barlow Condensed` (700 Bold / 800 Extra-Bold / 900 Black, Uppercase). Loaded via Google Fonts with `display=swap`.
+* **Body & UI:** `Inter` (400 Regular / 500 Medium / 600 Semi-Bold). Engineered for legibility and metric rhythm.
+
+---
+
+## 📱 Mobile-First Responsive Engineering
+
+Engineered by senior front-end standards to deliver a 60fps native-app-like experience across all device viewports:
+
+```
+┌─────────────────┬──────────────────────┬───────────────────────────────────────────┐
+│ Viewport Target │ Breakpoint Window    │ Responsive Layout Optimizations           │
+├─────────────────┼──────────────────────┼───────────────────────────────────────────┤
+│ Compact Mobile  │ 320px – 420px        │ • Full-width CTA buttons (w-full)         │
+│                 │ (iPhone SE, Galaxy)  │ • 44px minimum touch targets              │
+│                 │                      │ • Body scroll-lock on drawer open         │
+│                 │                      │ • 2-finger scroll over 3D canvas          │
+│                 │                      │ • Fluid typography (clamp) & tight line   │
+├─────────────────┼──────────────────────┼───────────────────────────────────────────┤
+│ Tablet / Fold   │ 768px – 1023px       │ • 2-column service & product grids        │
+│                 │ (iPad, Tablets)      │ • Adaptive 2x2 lookbook gallery           │
+├─────────────────┼──────────────────────┼───────────────────────────────────────────┤
+│ Desktop / Wide  │ 1024px – 1440px+     │ • 12-column parametric 3D studio view     │
+│                 │ (Laptops, 4K)        │ • Sticky utility bar & full nav menu      │
+│                 │                      │ • Hover lift elevation & cursor physics   │
+└─────────────────┴──────────────────────┴───────────────────────────────────────────┘
+```
+
+* **Zero Horizontal Jitter:** All containers, footers, and large uppercase headers implement strict `overflow-x-hidden` and `break-words`.
+* **Touch-Optimized OrbitControls:** Single-touch drag orbits the 3D model; standard page scroll is preserved via two-finger touch gestures.
+* **Accessible Navigation Drawer:** Modal backdrop with backdrop-blur, keyboard ESC dismissal, and automatic closing on route changes.
+
+---
+
+## 👕 Three.js 3D Customizer Engine
+
+The flagship **Technology & Innovation** section features an interactive real-time 3D Apparel Studio (`src/components/sections/ThreeCustomizerMockup.jsx`):
+
+```
+                                 ┌─────────────────────────────┐
+                                 │   Interactive 3D Studio     │
+                                 │      (Three.js + WebGL)     │
+                                 └──────────────┬──────────────┘
+                                                │
+                 ┌──────────────────────────────┴──────────────────────────────┐
+                 ▼                                                             ▼
+     ┌───────────────────────┐                                     ┌───────────────────────┐
+     │   True 3D Meshes      │                                     │  Parametric Shaders   │
+     │  (GLTFLoader .glb)    │                                     │   & Decal Texture     │
+     ├───────────────────────┤                                     ├───────────────────────┤
+     │ • 380 GSM Hoodie      │                                     │ • Real-time Swatches  │
+     │ • 240 GSM Tee         │                                     │ • Arched Typography   │
+     │ • Normal & Occlusion  │                                     │ • Specular Sheen      │
+     └───────────────────────┘                                     └───────────────────────┘
+```
+
+* **Real GLB Garment Assets:**
+  * `public/models/hoodie.glb` — Heavyweight 380 GSM collegiate pullover streetwear hoodie with authentic fabric drape and hood curvature.
+  * `public/models/shirt_baked.glb` — Athletic collegiate tee with baked ambient occlusion.
+* **Dynamic Arched Typography:** Mathematically calculates character rotation along an arc trajectory directly onto an offscreen canvas texture, providing authentic collegiate lettering (e.g. `JAMIA`, `STANFORD`, `IIT DELHI`) with outline strokes in real time.
+* **Studio Lighting Rig:** 4-point directional lighting (Key light with soft shadow map, soft fill, colored rim light, and contact ground disc).
+
+---
+
+## 🗂️ Project Directory Structure
 
 ```
 merchx-corporate/
 ├── api/
 │   └── contact.js                # Vercel Serverless Function (Resend API)
 ├── public/
-│   ├── favicon.svg               # MerchX MX monogram icon
-│   ├── robots.txt                # Search engine crawler directives
-│   └── sitemap.xml               # Complete XML sitemap (8 main routes)
+│   ├── favicon.svg               # MerchX MX monogram mark
+│   ├── models/                   # 3D GLTF/GLB garment assets
+│   │   ├── hoodie.glb            # 3D Heavyweight Pullover Hoodie (19.8 MB)
+│   │   └── shirt_baked.glb       # 3D Athletic Tee (1.05 MB)
+│   ├── products/                 # Static high-res product photos
+│   ├── robots.txt                # Search engine crawler instructions
+│   └── sitemap.xml               # Standard XML index for all 8 routes
 ├── src/
 │   ├── assets/
 │   │   ├── logo.jpg              # Official MerchX logo
-│   │   └── placeholder/          # Showcase project photography
+│   │   └── products/             # Authentic Jamia hoodie product mockups
 │   ├── components/
 │   │   ├── layout/
-│   │   │   ├── UtilityBar.jsx    # Top thin announcement strip
-│   │   │   ├── Navbar.jsx        # Sticky header + mobile drawer
-│   │   │   └── Footer.jsx        # Charcoal multi-column footer
+│   │   │   ├── Footer.jsx        # Charcoal multi-column footer with live links
+│   │   │   ├── Navbar.jsx        # Sticky navigation with mobile touch drawer
+│   │   │   └── UtilityBar.jsx    # Top institutional announcement bar
 │   │   ├── sections/
-│   │   │   ├── ContactForm.jsx   # Partnership form with validation
-│   │   │   ├── PageHero.jsx      # Inner page hero banners
-│   │   │   ├── PillarCard.jsx    # 3 core company pillars
-│   │   │   ├── ProjectCard.jsx   # Portfolio card with Jamia disclaimer
-│   │   │   ├── Seo.jsx           # Dynamic Helmet SEO tags
-│   │   │   ├── ServiceCard.jsx   # 5 turnkey services
-│   │   │   ├── StepTile.jsx      # Numbered step card
-│   │   │   ├── TeamCard.jsx      # Leadership profile card
-│   │   │   ├── ThreeCustomizerMockup.jsx # Three.js 3D garment customizer
-│   │   │   └── Timeline.jsx      # Responsive process timeline
+│   │   │   ├── ContactForm.jsx   # Partnership form with validation & honeypot
+│   │   │   ├── PageHero.jsx      # Reusable inner-page hero banner
+│   │   │   ├── PillarCard.jsx    # 3 core brand pillars
+│   │   │   ├── ProjectCard.jsx   # Case study card with mandatory disclaimer
+│   │   │   ├── Seo.jsx           # React Helmet Async meta and Open Graph tags
+│   │   │   ├── ServiceCard.jsx   # 5 turnkey core service cards
+│   │   │   ├── StepTile.jsx      # Numbered 01-06 process tile
+│   │   │   ├── TeamCard.jsx      # Leadership profile card (auto-hidden if empty)
+│   │   │   ├── ThreeCustomizerMockup.jsx # Interactive 3D garment customizer
+│   │   │   └── Timeline.jsx      # Responsive 6-step roadmap timeline
 │   │   └── ui/
 │   │       ├── Card.jsx          # Blocky card with green accent bar
-│   │       ├── Container.jsx     # Centered content container
-│   │       ├── CTAButton.jsx     # Primary & outline athletic buttons
-│   │       ├── ImagePlaceholder.jsx # Fallback image block with captions
-│   │       ├── Reveal.jsx        # IntersectionObserver scroll animation
-│   │       ├── ScrollToTop.jsx   # Auto-scroll on route changes
-│   │       └── Section.jsx       # Alternating section bands
-│   ├── data/
-│   │   ├── products.js           # 6 product categories (showcase only)
-│   │   ├── projects.js           # University initiatives & portfolio
-│   │   ├── roadmap.js            # 5-phase strategic roadmap
-│   │   ├── services.js           # 5 core services & key capabilities
-│   │   ├── site.js               # Metadata, navigation links, socials
-│   │   ├── steps.js              # 6-step collaborative process
-│   │   └── team.js               # Team data (auto-hides when empty)
+│   │       ├── Container.jsx     # Centered responsive content boundary
+│   │       ├── CTAButton.jsx     # Athletic rectangular action buttons
+│   │       ├── ImagePlaceholder.jsx # Fallback graphic containers with captions
+│   │       ├── Reveal.jsx        # Reduced-motion aware scroll animation
+│   │       ├── ScrollToTop.jsx   # Instant scroll reset on route changes
+│   │       └── Section.jsx       # Section container with alternating color bands
+│   ├── data/                     # Single Source of Truth content files
+│   │   ├── products.js           # 6 category showcase (no prices/no checkout)
+│   │   ├── projects.js           # University case studies & live storefront links
+│   │   ├── roadmap.js            # 5-phase strategic expansion roadmap
+│   │   ├── services.js           # 5 core capabilities & bullet deliverables
+│   │   ├── site.js               # Metadata, navigation links, and socials
+│   │   ├── steps.js              # 6-step collaborative operational process
+│   │   └── team.js               # Founder profiles (empty array auto-hides)
 │   ├── hooks/
-│   │   └── useReveal.js          # Motion-preference aware reveal hook
-│   ├── pages/
-│   │   ├── About.jsx             # Origin story, principles, mission
-│   │   ├── Home.jsx              # 12 complete sections
-│   │   ├── HowItWorks.jsx        # 6-step deep dive & deliverables
-│   │   ├── NotFound.jsx          # 404 error page
+│   │   └── useReveal.js          # IntersectionObserver hook
+│   ├── pages/                    # Route-level components
+│   │   ├── About.jsx             # Origin story, principles & team
+│   │   ├── Home.jsx              # All 12 homepage sections in sequential order
+│   │   ├── HowItWorks.jsx        # 6-step collaborative process deep-dive
+│   │   ├── NotFound.jsx          # 404 page
 │   │   ├── OurWork.jsx           # Case studies & Jamia initiative
 │   │   ├── Partner.jsx           # Partnership enquiry hub
 │   │   ├── Privacy.jsx           # Privacy policy
-│   │   ├── Technology.jsx        # 3D Fashion-Tech studio & roadmap
+│   │   ├── Technology.jsx        # 3D apparel studio & tech roadmap
 │   │   ├── Terms.jsx             # Terms of service
-│   │   └── Vision.jsx            # 5-phase growth strategy
-│   ├── App.jsx                   # Lazy-loaded routes & layout shell
-│   ├── index.css                 # Tailwind v4 @theme tokens & classes
-│   └── main.jsx                  # React 19 root with HelmetProvider
+│   │   └── Vision.jsx            # 5-phase strategic vision
+│   ├── App.jsx                   # Lazy-loaded router with suspense fallbacks
+│   ├── index.css                 # Tailwind v4 @theme design tokens
+│   └── main.jsx                  # Entry point with HelmetProvider
 ├── .env.example                  # Environment variable reference
-├── .npmrc                        # Legacy peer deps flag for React 19
+├── .npmrc                        # React 19 legacy peer dependencies configuration
 ├── package.json
-├── vercel.json                   # SPA routing rewrites
-└── vite.config.js                # Vite 6 config with @ alias
+├── vercel.json                   # SPA routing rewrites configuration
+└── vite.config.js                # Vite 6 config with `@` path alias
 ```
 
 ---
 
-## 4. Getting Started
+## 🛠️ Data-Driven Content Guide
 
-### Installation
+All site copy, navigation items, portfolio pieces, and product categories reside in `src/data/`. **You never need to edit JSX components to update text or links:**
+
+### 1. Brand & Contact Information (`src/data/site.js`)
+```javascript
+export const siteConfig = {
+  name: 'MerchX',
+  tagline: 'Wear Your Identity.',
+  url: 'https://merchx.in',
+  storeUrl: 'https://merch-x-jmi.vercel.app/', // Live JMI Storefront
+  email: 'partnerships@merchx.in',
+  phone: '+91 00000 00000',
+  address: 'New Delhi, India',
+  socials: {
+    instagram: 'https://instagram.com/YOUR_HANDLE',
+    linkedin: 'https://linkedin.com/company/YOUR_HANDLE'
+  }
+};
+```
+
+### 2. University Case Studies (`src/data/projects.js`)
+To add a new university collaboration, simply append to the `projects` array:
+```javascript
+{
+  id: 'iit-delhi',
+  client: 'IIT Delhi',
+  title: 'Varsity Tech Collection',
+  category: 'University Merchandise',
+  description: 'Complete departmental apparel launch...',
+  disclaimer: 'An independent MerchX initiative for the community.',
+  tags: ['University', 'Apparel', 'E-Commerce'],
+  images: [image1, image2],
+  link: 'https://store-url.vercel.app/'
+}
+```
+
+### 3. Founding Team (`src/data/team.js`)
+*Per Hard Content Rule 7:* The team section **automatically hides itself** if the array is empty. When ready to display leadership, uncomment and populate:
+```javascript
+export const team = [
+  {
+    id: 'founder-1',
+    name: 'Founder Name',
+    role: 'Founder & CEO',
+    bio: 'Passionate about collegiate fashion-tech...',
+    photo: null,
+    linkedin: 'https://linkedin.com/in/profile'
+  }
+];
+```
+
+---
+
+## ⚡ Getting Started
+
+### Prerequisites
+* Node.js 18.0 or higher
+* npm 9.0 or higher
+
+### Local Development Setup
 ```bash
-# Navigate to the corporate project folder
+# 1. Clone repository and navigate to corporate directory
 cd merchx-corporate
 
-# Install dependencies
+# 2. Install dependencies (respects React 19 legacy peer deps)
 npm install
-```
 
-### Local Development
-```bash
+# 3. Start local Vite development server
 npm run dev
 ```
-Open `http://localhost:5173` in your browser.
+The server will boot at **`http://localhost:5173/`**.
 
 ### Production Build
 ```bash
 npm run build
 ```
-Builds optimized production assets into `dist/`.
+Generates minified, code-split production bundles in `dist/`.
 
 ---
 
-## 5. Editing Content (Data-Driven Architecture)
+## 🚀 Deployment Guide (Vercel)
 
-All site content is separated into clean, modular data files inside `src/data/`. You do not need to modify component code to update content:
+The project includes pre-configured `vercel.json` SPA rewrites and serverless function routing:
 
-1. **Brand Details & Socials (`src/data/site.js`):**
-   - Update `email`, `phone`, `address`, and live `url`.
-   - Add Instagram and LinkedIn URLs in `socials`.
-
-2. **Team Members (`src/data/team.js`):**
-   - The team section is hidden by default. Once the founders are ready to display their profiles, uncomment the schema template and populate names, roles, bios, and LinkedIn profiles.
-
-3. **Services (`src/data/services.js`):**
-   - Edit the 5 core capabilities and bullet items.
-
-4. **Process Steps (`src/data/steps.js`):**
-   - Adjust the 6-step operational cycle.
-
-5. **Products Showcase (`src/data/products.js`):**
-   - 6 display categories: T-Shirts, Pullover Hoodies, Crewneck Sweatshirts, Polo T-Shirts, Lifestyle Apparel, and Sportswear. *(No jackets, no pricing, no checkout).*
-
-6. **Projects & Portfolio (`src/data/projects.js`):**
-   - Add new university collaborations. Note: all Jamia projects must preserve the disclaimer: *"An independent MerchX initiative for the Jamia community."*
-
-7. **Strategic Roadmap (`src/data/roadmap.js`):**
-   - Manage the 5 phases from foundation to national creator infrastructure.
-
----
-
-## 6. Three.js 3D Customizer Engine
-
-The website features an interactive 3D Apparel Customization Engine (`src/components/sections/ThreeCustomizerMockup.jsx`) located in Section 8 of the Homepage and the `/technology` page.
-- **True 3D GLTF / GLB Meshes:** Loads realistic 3D clothing assets via Three.js `GLTFLoader`:
-  - `public/models/hoodie.glb` — Heavyweight 380 GSM Pullover Streetwear Hoodie.
-  - `public/models/shirt_baked.glb` — Collegiate Athletic 240 GSM Tee.
-- **OrbitControls & Studio Lighting:** Full 360° mouse drag orbit, scroll-wheel zoom, ACESFilmic tone-mapping, soft studio shadow plate, key light, fill light, and rim lighting.
-- **Real-Time Fabric Recoloring:** Smoothly applies colorway shaders (Signature Forest Green, Heather Cream, Charcoal, Navy, Crimson) across all submeshes without destroying normal maps.
-- **Live Arched Typography Decal:** Mathematically plots collegiate curved lettering across the chest in real time as the user types institution names and graduation years.
-- **Captioned strictly with:** *"True 3D GLB Simulation · Concept — Coming Soon · Our Vision"*.
-
----
-
-## 7. Contact Form & Email Setup (Resend)
-
-The partnership form connects to `api/contact.js` (a Vercel Serverless Function).
-
-### Environment Variables
-Create a `.env` file (or set in Vercel project settings):
-```bash
-RESEND_API_KEY=re_your_api_key_here
-CONTACT_TO_EMAIL=partnerships@yourdomain.com
-```
-
-### Fallback Handling
-If environment variables are not yet configured, the form safely alerts the user:
-> *"Messages aren't enabled yet, please email us directly at contact@..."*
-It never displays a false positive success.
-
----
-
-## 8. Deploying on Vercel
-
-1. Push this repository to GitHub / GitLab.
-2. In the Vercel Dashboard, select **Add New Project**.
+1. Push this repository to GitHub or GitLab.
+2. In the **Vercel Dashboard**, click **Add New Project**.
 3. Set the **Root Directory** to `MerchX_JMI-main/merchx-corporate` (or `merchx-corporate`).
-4. Add the Environment Variables:
-   - `RESEND_API_KEY`
-   - `CONTACT_TO_EMAIL`
-5. Deploy! Vercel handles SPA client-side routing automatically via `vercel.json`.
+4. Configure Environment Variables in the Vercel project settings:
+   ```env
+   RESEND_API_KEY=re_your_api_key_here
+   CONTACT_TO_EMAIL=partnerships@yourdomain.com
+   ```
+5. Click **Deploy**. Vercel will build the SPA and route all API calls to `/api/contact`.
+
+> **Note on Email Graceful Degradation:** If `RESEND_API_KEY` is not supplied, the contact form automatically detects this and notifies the user to email directly, ensuring **no false success messages** are ever displayed.
 
 ---
 
-## 9. Founder Checklist (TODOs Before Launch)
+## ⚖️ Legal & Brand Integrity Rules
 
-- [ ] Add founder profiles in `src/data/team.js`.
-- [ ] Connect official social links (Instagram / LinkedIn) in `src/data/site.js`.
-- [ ] Set live domain in `siteConfig.url` (`src/data/site.js`) and `public/robots.txt` / `public/sitemap.xml`.
-- [ ] Obtain Resend API key and configure `RESEND_API_KEY` and `CONTACT_TO_EMAIL`.
-- [ ] Replace any placeholder photos in `src/assets/placeholder/` with high-resolution photography.
+1. **Independent Venture:** MerchX operates independently. Case studies for university communities carry the explicit disclaimer: *"An independent MerchX initiative for the community."*
+2. **Concept Labeling:** The 3D customizer is a Phase 3 technology vision and is captioned with: *"Concept — Coming Soon · Our Vision"*.
+3. **B2B Showcase Scope:** The corporate platform does not conduct consumer retail transactions, checkout, or cart functionality. Direct purchasing takes place exclusively on dedicated institutional storefronts (such as [merch-x-jmi.vercel.app](https://merch-x-jmi.vercel.app/)).
 
-#   i n t r o _ m e r c h x  
- 
+---
+
+<div align="center">
+  <sub>Designed & Developed for MerchX • Wear Your Identity.</sub>
+</div>

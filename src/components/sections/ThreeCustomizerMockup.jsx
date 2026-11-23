@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RotateCw, Sparkles, Sliders, Check, Shirt, Layers, Box, ZoomIn } from 'lucide-react';
+import { RotateCw, Sparkles, Sliders, Check, Shirt, Layers, Box, Move } from 'lucide-react';
 
 const GARMENT_MODELS = [
   {
@@ -47,7 +47,6 @@ export function ThreeCustomizerMockup() {
   const controlsRef = useRef(null);
   const currentModelRef = useRef(null);
   const chestDecalRef = useRef(null);
-  const modelCacheRef = useRef({});
 
   // Generate dynamic canvas texture for the chest print
   const createChestTexture = (color, name, sub, year) => {
@@ -60,7 +59,7 @@ export function ThreeCustomizerMockup() {
     const isDark = color.textOnDark;
     const textColor = isDark ? '#FFFFFF' : '#004636';
     const accentColor = isDark ? '#D4AF37' : '#00644E';
-    const outlineColor = isDark ? '#00644E' : '#FFFFFF';
+    const outlineColor = isDark ? '#004636' : '#FFFFFF';
 
     const centerX = 512;
     const centerY = 500;
@@ -131,7 +130,6 @@ export function ThreeCustomizerMockup() {
         if (child.name === 'chestDecal') return; // skip decal
 
         if (child.material) {
-          // Clone material to avoid modifying cached instances
           if (!child.userData.originalMaterialCloned) {
             child.material = child.material.clone();
             child.userData.originalMaterialCloned = true;
@@ -173,7 +171,7 @@ export function ThreeCustomizerMockup() {
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
-    // 4. OrbitControls
+    // 4. OrbitControls with Touch Optimization
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.06;
@@ -182,6 +180,11 @@ export function ThreeCustomizerMockup() {
     controls.maxDistance = 5.5;
     controls.maxPolarAngle = Math.PI / 1.8;
     controls.minPolarAngle = Math.PI / 4;
+    // Allow standard page scrolling on mobile via two fingers
+    controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
     controlsRef.current = controls;
 
     // 5. Studio Lighting Rig
@@ -220,9 +223,9 @@ export function ThreeCustomizerMockup() {
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
 
-      if (autoRotate && controlsRef.current && !controlsRef.current.state === -1) {
+      if (autoRotate && controlsRef.current) {
         if (currentModelRef.current) {
-          currentModelRef.current.rotation.y += 0.007;
+          currentModelRef.current.rotation.y += 0.006;
         }
       }
 
@@ -371,24 +374,24 @@ export function ThreeCustomizerMockup() {
   return (
     <div className="bg-charcoal text-white rounded-xs border border-neutral-800 overflow-hidden shadow-2xl">
       {/* Top Header Bar */}
-      <div className="bg-neutral-900/90 px-6 py-4 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="w-2.5 h-2.5 rounded-full bg-green-primary animate-pulse" />
-          <span className="font-heading text-lg font-bold uppercase tracking-wider text-white">
-            Digital Apparel Customisation Studio
+      <div className="bg-neutral-900/90 px-4 sm:px-6 py-3.5 sm:py-4 border-b border-neutral-800 flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <span className="w-2.5 h-2.5 rounded-full bg-green-primary animate-pulse shrink-0" />
+          <span className="font-heading text-base sm:text-lg font-bold uppercase tracking-wider text-white truncate">
+            Digital Apparel Studio
           </span>
-          <span className="px-2 py-0.5 rounded-xs bg-green-primary/20 text-green-primary text-[10px] font-extrabold uppercase tracking-widest border border-green-primary/40">
-            True 3D GLB Simulation · Concept
+          <span className="hidden sm:inline-block px-2 py-0.5 rounded-xs bg-green-primary/20 text-green-primary text-[10px] font-extrabold uppercase tracking-widest border border-green-primary/40 shrink-0">
+            True 3D GLB · Concept
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-400">
+        <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
           <Box className="w-4 h-4 text-green-primary" />
-          <span>Real-time Mesh & Fabric Engine</span>
+          <span className="hidden xs:inline">Real-time 3D Engine</span>
         </div>
       </div>
 
       {/* Main Studio Viewport & Customizer Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[640px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] lg:min-h-[640px]">
         {/* Left: 3D Three.js Viewport (7 cols) */}
         <div className="lg:col-span-7 relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col justify-between overflow-hidden">
           {/* Subtle Ambient Radial Lighting */}
@@ -396,7 +399,7 @@ export function ThreeCustomizerMockup() {
 
           {/* Loading Indicator */}
           {loadingModel && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/80 backdrop-blur-sm space-y-3">
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/80 backdrop-blur-sm space-y-3 p-4 text-center">
               <div className="w-10 h-10 border-4 border-green-primary border-t-transparent rounded-full animate-spin" />
               <p className="font-heading text-sm uppercase tracking-wider font-bold text-white">
                 Loading 3D {activeGarment.name.split(' ')[1]} Model...
@@ -404,53 +407,61 @@ export function ThreeCustomizerMockup() {
             </div>
           )}
 
-          {/* Three.js Canvas Container */}
+          {/* Three.js Canvas Container - Responsive Height */}
           <div
             ref={mountRef}
-            className="w-full h-[440px] lg:h-[640px] cursor-grab active:cursor-grabbing"
-            title="Click and drag to orbit in 3D. Scroll to zoom."
+            className="w-full h-[340px] sm:h-[440px] lg:h-[640px] cursor-grab active:cursor-grabbing"
+            title="Click and drag to orbit in 3D. Scroll wheel to zoom."
           />
 
           {/* Viewport Floating Top Controls */}
-          <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-10">
             <button
               type="button"
               onClick={() => setAutoRotate(!autoRotate)}
-              className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
+              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xs text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
                 autoRotate
                   ? 'bg-green-primary text-white'
-                  : 'bg-neutral-800/80 text-neutral-300 hover:bg-neutral-700'
+                  : 'bg-neutral-800/90 text-neutral-300 hover:bg-neutral-700'
               }`}
             >
-              <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
               <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
             </button>
           </div>
 
-          {/* Bottom Camera Angles & Orbit Guidance */}
-          <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
-            <span className="hidden sm:inline bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-800 text-[11px]">
-              Orbit: Drag · Zoom: Scroll wheel · True 3D GLTF Mesh
+          {/* Mobile Gestures Guidance Chip */}
+          <div className="absolute top-3 right-3 sm:hidden z-10 pointer-events-none">
+            <span className="bg-neutral-950/80 text-[10px] text-neutral-300 px-2 py-1 rounded-xs border border-neutral-800 flex items-center gap-1">
+              <Move className="w-3 h-3 text-green-primary" />
+              <span>1-Finger Orbit</span>
             </span>
-            <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/90 p-1 rounded-xs border border-neutral-800 shadow-xl">
+          </div>
+
+          {/* Bottom Camera Angles & Orbit Guidance */}
+          <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
+            <span className="hidden sm:inline bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-800 text-[11px]">
+              Drag to Orbit 360° · Scroll to Zoom
+            </span>
+            <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-800 shadow-xl ml-auto">
               <button
                 type="button"
                 onClick={() => handleSetView('front')}
-                className="px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
               >
                 Front
               </button>
               <button
                 type="button"
                 onClick={() => handleSetView('angle')}
-                className="px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
               >
-                3D Angle
+                Angle
               </button>
               <button
                 type="button"
                 onClick={() => handleSetView('back')}
-                className="px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                className="px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
               >
                 Back
               </button>
@@ -459,18 +470,18 @@ export function ThreeCustomizerMockup() {
         </div>
 
         {/* Right: Customization Controls Panel (5 cols) */}
-        <div className="lg:col-span-5 p-6 sm:p-8 bg-neutral-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-800">
-          <div className="space-y-6">
+        <div className="lg:col-span-5 p-4 sm:p-6 lg:p-8 bg-neutral-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-800">
+          <div className="space-y-5 sm:space-y-6">
             <div>
               <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-primary mb-1">
                 <Sliders className="w-4 h-4" />
-                <span>3D Parametric Studio</span>
+                <span>Parametric Studio</span>
               </div>
-              <h3 className="font-heading text-2xl font-black uppercase tracking-tight text-white">
-                Customize 3D Apparel
+              <h3 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
+                Customize 3D Garment
               </h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Interactive real-time 3D simulation powered by Three.js & WebGL.
+                Experience how collegiate institutions can co-create apparel in real time.
               </p>
             </div>
 
@@ -479,13 +490,13 @@ export function ThreeCustomizerMockup() {
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
                 1. Select 3D Garment Mesh
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {GARMENT_MODELS.map((garment) => (
                   <button
                     key={garment.id}
                     type="button"
                     onClick={() => setActiveGarment(garment)}
-                    className={`p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
+                    className={`p-2.5 sm:p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
                       activeGarment.id === garment.id
                         ? 'bg-neutral-800 border-green-primary ring-1 ring-green-primary text-white'
                         : 'bg-neutral-950/60 border-neutral-800 text-neutral-400 hover:border-neutral-700'
@@ -510,13 +521,13 @@ export function ThreeCustomizerMockup() {
               <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
                 2. Fabric Color: <span className="text-green-primary">{selectedColor.name}</span>
               </label>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2.5 sm:gap-3">
                 {COLOR_SWATCHES.map((color) => (
                   <button
                     key={color.hex}
                     type="button"
                     onClick={() => setSelectedColor(color)}
-                    className={`w-9 h-9 rounded-full border-2 transition-transform ${
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 transition-transform ${
                       selectedColor.hex === color.hex
                         ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
                         : 'border-transparent hover:scale-105'
@@ -526,7 +537,7 @@ export function ThreeCustomizerMockup() {
                     aria-label={`Select color ${color.name}`}
                   >
                     {selectedColor.hex === color.hex && (
-                      <Check className={`w-4 h-4 mx-auto ${color.textOnDark ? 'text-white' : 'text-charcoal'}`} />
+                      <Check className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mx-auto ${color.textOnDark ? 'text-white' : 'text-charcoal'}`} />
                     )}
                   </button>
                 ))}
@@ -545,11 +556,11 @@ export function ThreeCustomizerMockup() {
                   value={institutionName}
                   onChange={(e) => setInstitutionName(e.target.value)}
                   placeholder="e.g. JAMIA, STANFORD, IIT DELHI"
-                  className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none"
+                  className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
                     Subtitle
@@ -558,9 +569,9 @@ export function ThreeCustomizerMockup() {
                     type="text"
                     maxLength={16}
                     value={subText}
-                    onChange={(e) => setSubText(e.target.value)}
+                    onChange={(e) => setInstitutionSub(e.target.value)}
                     placeholder="e.g. MILLIA ISLAMIA"
-                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none"
+                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
                   />
                 </div>
 
@@ -574,7 +585,7 @@ export function ThreeCustomizerMockup() {
                     value={estYear}
                     onChange={(e) => setEstYear(e.target.value)}
                     placeholder="e.g. EST. 1920"
-                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none"
+                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
                   />
                 </div>
               </div>
@@ -584,10 +595,10 @@ export function ThreeCustomizerMockup() {
           {/* Bottom Caption & Disclaimer (Brief Rule 3) */}
           <div className="mt-6 pt-4 border-t border-neutral-800">
             <div className="flex items-center justify-between text-xs text-neutral-400">
-              <span className="font-semibold text-neutral-300">
-                Garment Silhouette: {activeGarment.name}
+              <span className="font-semibold text-neutral-300 truncate max-w-[220px]">
+                {activeGarment.name.split('(')[0]}
               </span>
-              <span className="text-[11px] font-bold text-green-primary uppercase">
+              <span className="text-[10px] font-bold text-green-primary uppercase shrink-0">
                 Phase 3 Vision
               </span>
             </div>

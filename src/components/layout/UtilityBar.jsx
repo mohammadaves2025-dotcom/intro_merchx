@@ -4,15 +4,15 @@ import { ArrowRight } from 'lucide-react';
 
 export function UtilityBar() {
   return (
-    <div className="bg-charcoal text-neutral-300 text-[11px] sm:text-xs py-1.5 px-4 sm:px-6 lg:px-8 border-b border-neutral-800 z-50 relative">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className="inline-block w-1.5 h-1.5 bg-green-primary rounded-full animate-pulse" />
-          <span className="font-medium tracking-wide">
+    <div className="bg-charcoal text-neutral-300 text-[11px] sm:text-xs py-1.5 px-3 sm:px-6 lg:px-8 border-b border-neutral-800 z-50 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <span className="inline-block w-1.5 h-1.5 bg-green-primary rounded-full animate-pulse shrink-0" />
+          <span className="font-medium tracking-wide truncate">
             University Merchandise & Fashion-Tech Ecosystem · India
           </span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 shrink-0">
           <a
             href="https://merch-x-jmi.vercel.app/"
             target="_blank"
@@ -34,4 +34,3 @@ export function UtilityBar() {
     </div>
   );
 }
-

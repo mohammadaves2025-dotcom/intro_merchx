@@ -98,7 +98,7 @@ export function ContactForm() {
   };
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-xs p-6 sm:p-10 text-white max-w-2xl mx-auto shadow-2xl relative">
+    <div className="bg-neutral-900 border border-neutral-800 rounded-xs p-5 sm:p-8 md:p-10 text-white max-w-2xl mx-auto shadow-2xl relative">
       <div className="h-1.5 w-full bg-green-primary absolute top-0 left-0 right-0" />
 
       {status === 'success' ? (

@@ -23,7 +23,7 @@ export function Card({
       {!noAccent && (
         <div className="h-1 w-full bg-green-primary shrink-0" aria-hidden="true" />
       )}
-      <div className="p-6 sm:p-8 flex-1 flex flex-col">
+      <div className="p-5 sm:p-6 md:p-8 flex-1 flex flex-col">
         {children}
       </div>
     </div>

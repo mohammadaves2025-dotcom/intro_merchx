@@ -30,7 +30,7 @@ export function SectionHeading({
       )}
       {title && (
         <h2
-          className={`font-heading text-3xl sm:text-4xl md:text-5xl font-extrabold uppercase tracking-tight leading-none ${
+          className={`font-heading text-2xl sm:text-4xl md:text-5xl font-extrabold uppercase tracking-tight leading-tight md:leading-none ${
             light ? 'text-white' : 'text-charcoal'
           }`}
         >

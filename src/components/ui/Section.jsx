@@ -17,10 +17,10 @@ export function Section({
 
   const pyStyles = {
     none: 'py-0',
-    sm: 'py-12 md:py-16',
-    md: 'py-20 md:py-24',
-    lg: 'py-24 md:py-32'
-  }[py] || 'py-20 md:py-24';
+    sm: 'py-10 sm:py-12 md:py-16',
+    md: 'py-14 sm:py-20 md:py-24',
+    lg: 'py-16 sm:py-24 md:py-32'
+  }[py] || 'py-14 sm:py-20 md:py-24';
 
   return (
     <section

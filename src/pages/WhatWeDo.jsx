@@ -116,14 +116,14 @@ export default function WhatWeDo() {
       <Section variant="charcoal" py="md">
         <Container className="text-center max-w-3xl mx-auto">
           <Reveal>
-            <h2 className="font-heading text-3xl sm:text-4xl md:text-5xl font-black uppercase text-white">
+            <h2 className="font-heading text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight text-white leading-tight md:leading-none">
               Ready to Upgrade Your Institution's Merchandise?
             </h2>
-            <p className="mt-4 text-neutral-300 text-base sm:text-lg">
+            <p className="mt-4 text-neutral-300 text-sm sm:text-lg">
               Let our team develop a custom collection proposal tailored to your colors, crest, and community.
             </p>
-            <div className="mt-8 flex justify-center gap-4">
-              <CTAButton to="/partner" variant="primary" size="lg">
+            <div className="mt-8 flex justify-center">
+              <CTAButton to="/partner" variant="primary" size="lg" className="w-full sm:w-auto">
                 Start a Conversation
               </CTAButton>
             </div>

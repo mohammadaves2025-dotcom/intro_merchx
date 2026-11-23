@@ -12,8 +12,8 @@ export function ProjectCard({ project, variant = 'dark' }) {
       {/* Top Green Accent */}
       <div className="h-1.5 w-full bg-green-primary" />
 
-      {/* Image Grid / Hero Image */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 p-2 bg-neutral-950/20">
+      {/* Image Grid / Lookbook Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-2 p-2 bg-neutral-950/20">
         {project.images && project.images.length > 0 ? (
           project.images.map((img, idx) => (
             <div key={idx} className="relative overflow-hidden aspect-[4/3] rounded-xs bg-neutral-800">
@@ -34,7 +34,7 @@ export function ProjectCard({ project, variant = 'dark' }) {
       </div>
 
       {/* Content */}
-      <div className="p-6 sm:p-8">
+      <div className="p-5 sm:p-8">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <span className="text-xs font-bold uppercase tracking-widest text-green-primary">
             {project.category}
@@ -89,7 +89,7 @@ export function ProjectCard({ project, variant = 'dark' }) {
               href={project.link}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-green-primary hover:bg-green-dark text-white font-heading text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xs transition-colors shadow-sm"
+              className="inline-flex items-center justify-center gap-2 bg-green-primary hover:bg-green-dark text-white font-heading text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-xs transition-colors shadow-sm w-full sm:w-auto"
             >
               <span>Visit Live JMI Storefront</span>
               <ExternalLink className="w-3.5 h-3.5" />

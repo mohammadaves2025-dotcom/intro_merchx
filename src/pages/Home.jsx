@@ -80,21 +80,21 @@ export default function Home() {
               </span>
             </div>
 
-            <h1 className="font-heading text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-tight text-white leading-none max-w-5xl mx-auto">
+            <h1 className="font-heading text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black uppercase tracking-tight text-white leading-tight md:leading-none max-w-5xl mx-auto">
               YOUR INSTITUTION.{' '}
               <span className="text-green-primary">YOUR IDENTITY.</span>{' '}
               YOUR MERCHANDISE.
             </h1>
 
-            <p className="mt-8 text-base sm:text-xl text-neutral-300 max-w-2xl mx-auto font-normal leading-relaxed">
+            <p className="mt-6 sm:mt-8 text-sm sm:text-lg md:text-xl text-neutral-300 max-w-2xl mx-auto font-normal leading-relaxed">
               MerchX builds complete merchandise ecosystems for universities, institutions and communities — from the first design concept to the final delivery.
             </p>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-              <CTAButton to="/partner" variant="primary" size="lg">
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full max-w-md sm:max-w-none">
+              <CTAButton to="/partner" variant="primary" size="lg" className="w-full sm:w-auto">
                 Partner With MerchX
               </CTAButton>
-              <CTAButton to="/what-we-do" variant="outline-light" size="lg">
+              <CTAButton to="/what-we-do" variant="outline-light" size="lg" className="w-full sm:w-auto">
                 Explore What We Do
               </CTAButton>
             </div>
@@ -431,10 +431,10 @@ export default function Home() {
                   Start A Collaboration
                 </span>
               </div>
-              <h2 className="font-heading text-3xl sm:text-5xl md:text-6xl font-black uppercase tracking-tight text-white leading-none">
+              <h2 className="font-heading text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-white leading-tight md:leading-none">
                 Let's Build Something Your Community Can Wear With Pride.
               </h2>
-              <p className="mt-6 text-base sm:text-lg text-neutral-300 leading-relaxed">
+              <p className="mt-4 sm:mt-6 text-sm sm:text-base md:text-lg text-neutral-300 leading-relaxed">
                 Whether you represent a university administration, student council, athletic department, campus club, or institutional incubator — we would love to connect.
               </p>
             </Reveal>
