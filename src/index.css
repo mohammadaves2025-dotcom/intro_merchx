@@ -1,0 +1,174 @@
+@import "tailwindcss";
+
+/* ============================================================
+   TAILWIND v4 THEME TOKENS
+   ============================================================ */
+@theme {
+  /* Brand Colours */
+  --color-green-primary: #00644E;
+  --color-green-dark:    #004636;
+  --color-ivory:         #FAF7F0;
+  --color-cream:         #F2EDE0;
+  --color-beige:         #E4DAC4;
+  --color-charcoal:      #1B1B1B;
+  --color-grey:          #6B6F6C;
+
+  /* Typography */
+  --font-heading: 'Barlow Condensed', sans-serif;
+  --font-body:    'Inter', sans-serif;
+
+  /* Custom spacing */
+  --spacing-section-sm: 4rem;
+  --spacing-section-md: 6rem;
+  --spacing-section-lg: 8rem;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    color: #1B1B1B;
+    background-color: #ffffff;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  /* Headings use Barlow Condensed */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Barlow Condensed', sans-serif;
+  }
+
+  /* Visible focus states for keyboard navigation */
+  :focus-visible {
+    outline: 2px solid #00644E;
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Remove focus ring for mouse users */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Smooth image rendering */
+  img {
+    display: block;
+    max-width: 100%;
+  }
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+@layer utilities {
+  /* Hero text sizing — fluid */
+  .text-hero {
+    font-size: clamp(3.25rem, 8vw, 6.5rem);
+    line-height: 0.95;
+    letter-spacing: -0.01em;
+  }
+
+  .text-h1 {
+    font-size: clamp(2.25rem, 5vw, 4rem);
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+
+  .text-h2 {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+  }
+
+  /* Card hover lift */
+  .card-lift {
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Nav underline animation */
+  .nav-underline {
+    position: relative;
+  }
+  .nav-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: #00644E;
+    transition: width 200ms ease;
+  }
+  .nav-underline:hover::after,
+  .nav-underline.active::after {
+    width: 100%;
+  }
+
+  /* Section band backgrounds */
+  .band-white   { background-color: #ffffff; }
+  .band-ivory   { background-color: #FAF7F0; }
+  .band-charcoal { background-color: #1B1B1B; color: #ffffff; }
+
+  /* Green accent bar on cards */
+  .accent-top::before {
+    content: '';
+    display: block;
+    height: 4px;
+    background-color: #00644E;
+    border-radius: 2px 2px 0 0;
+  }
+
+  /* Staggered reveal helper */
+  .reveal-hidden {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal-hidden {
+      opacity: 0;
+      transform: none;
+    }
+    .reveal-visible {
+      transition: opacity 0.3s ease-out;
+    }
+  }
+
+  /* Concept UI mockup helpers */
+  .mockup-swatch {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    cursor: pointer;
+  }
+  .mockup-input {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    color: white;
+    font-size: 0.875rem;
+    width: 100%;
+  }
+  .mockup-input::placeholder {
+    color: rgba(255,255,255,0.4);
+  }
+}
