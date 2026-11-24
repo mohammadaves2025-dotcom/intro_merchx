@@ -26,11 +26,11 @@ const GARMENT_MODELS = [
     file: '/models/hoodie.glb',
     scaleMultiplier: 1.0,
     frontCenterY: -0.17,
-    frontWidth: 0.52,
-    frontHeight: 0.44,
+    frontWidth: 0.58,
+    frontHeight: 0.48,
     backCenterY: -0.16,
-    backWidth: 0.52,
-    backHeight: 0.50
+    backWidth: 0.58,
+    backHeight: 0.58
   },
   {
     id: 'shirt',
@@ -40,11 +40,11 @@ const GARMENT_MODELS = [
     file: '/models/shirt_baked.glb',
     scaleMultiplier: 1.0,
     frontCenterY: 0.05,
-    frontWidth: 0.48,
-    frontHeight: 0.42,
+    frontWidth: 0.52,
+    frontHeight: 0.46,
     backCenterY: 0.08,
-    backWidth: 0.48,
-    backHeight: 0.48
+    backWidth: 0.52,
+    backHeight: 0.52
   }
 ];
 
@@ -142,11 +142,11 @@ export function ThreeCustomizerMockup() {
     autoRotateRef.current = autoRotate;
   }, [autoRotate]);
 
-  // 1. Generate High-Resolution Front Chest Canvas Texture
+  // 1. Generate High-Resolution Front Chest Canvas Texture (2048 x 2048 for doubled typography size)
   const createFrontTexture = (color, name, sub, year) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = 2048;
+    canvas.height = 2048;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -154,26 +154,25 @@ export function ThreeCustomizerMockup() {
     const accentColor = color.accentText;
     const outlineColor = color.outlineText;
 
-    const centerX = 512;
-    const centerY = 500;
+    const centerX = 1024;
+    const centerY = 1024;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Arched Collegiate Top Text
+    // Bold Arched Collegiate Top Text (up by 100% in font size & span)
     const textToArch = (name || 'JAMIA').toUpperCase().trim();
     if (textToArch.length > 0) {
-      const archRadius = 380;
-      // Spread angle based on text length
-      const maxSpread = Math.PI * 0.42;
-      const anglePerChar = Math.min(0.08, maxSpread / Math.max(1, textToArch.length));
-      const totalAngle = Math.min(maxSpread, (textToArch.length - 1) * anglePerChar);
+      const archRadius = 880;
+      const maxSpread = Math.PI * 0.52;
+      const minSpread = Math.PI * 0.38;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (textToArch.length * 0.048) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = textToArch.length > 1 ? totalAngle / (textToArch.length - 1) : 0;
 
-      // Font size scales gracefully with length
-      const fontSize = textToArch.length > 10 ? 82 : textToArch.length > 7 ? 94 : 108;
+      // Font size up by 100%: 180px - 250px
+      const fontSize = textToArch.length > 10 ? 180 : textToArch.length > 6 ? 210 : 250;
       ctx.font = `900 ${fontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < textToArch.length; i++) {
@@ -181,13 +180,13 @@ export function ThreeCustomizerMockup() {
         const angle = textToArch.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY + 100);
+        ctx.translate(centerX, centerY + 320);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
         // Deep drop/outline shadow
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 14;
+        ctx.lineWidth = 28;
         ctx.lineJoin = 'miter';
         ctx.miterLimit = 2;
         ctx.strokeText(char, 0, 0);
@@ -199,44 +198,47 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Subtitle Text (e.g. MILLIA ISLAMIA)
+    // Subtitle Text (up by 100%: 100px - 125px)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      const subFontSize = subString.length > 14 ? 44 : 52;
+      const subFontSize = subString.length > 14 ? 100 : 120;
       ctx.font = `800 ${subFontSize}px "Barlow Condensed", -apple-system, sans-serif`;
 
-      // Subtle contrast shadow
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 8;
-      ctx.strokeText(subString, centerX, centerY + 85);
+      ctx.lineWidth = 18;
+      ctx.strokeText(subString, centerX, centerY + 180);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(subString, centerX, centerY + 85);
+      ctx.fillText(subString, centerX, centerY + 180);
     }
 
-    // Established Year or Tag (e.g. — EST. 1920 —)
+    // Established Year or Tag (up by 100%: 64px)
     if (year && year.trim().length > 0) {
       const yearString = year.toUpperCase().trim();
-      ctx.font = '700 28px "Inter", -apple-system, sans-serif';
+      ctx.font = '700 64px "Inter", -apple-system, sans-serif';
+
+      ctx.strokeStyle = outlineColor;
+      ctx.lineWidth = 10;
+      ctx.strokeText(`★  ${yearString}  ★`, centerX, centerY + 300);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(`★  ${yearString}  ★`, centerX, centerY + 145);
+      ctx.fillText(`★  ${yearString}  ★`, centerX, centerY + 300);
     }
 
     ctx.restore();
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 8;
+    texture.anisotropy = 16;
     texture.needsUpdate = true;
     return texture;
   };
 
-  // 2. Generate High-Resolution Back Varsity Canvas Texture
+  // 2. Generate High-Resolution Back Varsity Canvas Texture (2048 x 2048, up by 100% in size)
   const createBackTexture = (color, name, number, sub) => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = 2048;
+    canvas.height = 2048;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -244,24 +246,24 @@ export function ThreeCustomizerMockup() {
     const accentColor = color.accentText;
     const outlineColor = color.outlineText;
 
-    const centerX = 512;
-    const centerY = 512;
+    const centerX = 1024;
+    const centerY = 1024;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Top Player/Institution Arch on upper back
+    // Top Player/Institution Arch on upper back (up by 100%: 170px - 210px)
     const nameString = (name || 'JAMIA').toUpperCase().trim();
     if (nameString.length > 0) {
-      const archRadius = 400;
-      const maxSpread = Math.PI * 0.40;
-      const anglePerChar = Math.min(0.075, maxSpread / Math.max(1, nameString.length));
-      const totalAngle = Math.min(maxSpread, (nameString.length - 1) * anglePerChar);
+      const archRadius = 920;
+      const maxSpread = Math.PI * 0.48;
+      const minSpread = Math.PI * 0.36;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.046) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = nameString.length > 1 ? totalAngle / (nameString.length - 1) : 0;
 
-      const nameFontSize = nameString.length > 10 ? 76 : 90;
+      const nameFontSize = nameString.length > 10 ? 170 : 210;
       ctx.font = `900 ${nameFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < nameString.length; i++) {
@@ -269,12 +271,12 @@ export function ThreeCustomizerMockup() {
         const angle = nameString.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY - 60);
+        ctx.translate(centerX, centerY - 140);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 14;
+        ctx.lineWidth = 28;
         ctx.strokeText(char, 0, 0);
 
         ctx.fillStyle = textColor;
@@ -283,42 +285,42 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Giant Collegiate Varsity Back Number (e.g. "20" or "07")
+    // Giant Collegiate Varsity Back Number (up by 100%: 660px height!)
     if (number && number.trim().length > 0) {
       const numString = number.trim();
-      ctx.font = '900 290px "Barlow Condensed", "Impact", -apple-system, sans-serif';
+      ctx.font = '900 660px "Barlow Condensed", "Impact", -apple-system, sans-serif';
 
       // Heavy 2-Tone Varsity Outline
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 24;
-      ctx.strokeText(numString, centerX, centerY + 30);
+      ctx.lineWidth = 48;
+      ctx.strokeText(numString, centerX, centerY + 80);
 
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 12;
-      ctx.strokeText(numString, centerX, centerY + 30);
+      ctx.lineWidth = 24;
+      ctx.strokeText(numString, centerX, centerY + 80);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(numString, centerX, centerY + 30);
+      ctx.fillText(numString, centerX, centerY + 80);
     }
 
-    // Bottom Subtitle (e.g. "NEW DELHI" or "VARSITY ATHLETICS")
+    // Bottom Subtitle (up by 100%: 88px)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      ctx.font = '800 40px "Barlow Condensed", -apple-system, sans-serif';
+      ctx.font = '800 88px "Barlow Condensed", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 8;
-      ctx.strokeText(subString, centerX, centerY + 240);
+      ctx.lineWidth = 16;
+      ctx.strokeText(subString, centerX, centerY + 520);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(subString, centerX, centerY + 240);
+      ctx.fillText(subString, centerX, centerY + 520);
     }
 
     ctx.restore();
 
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
-    texture.anisotropy = 8;
+    texture.anisotropy = 16;
     texture.needsUpdate = true;
     return texture;
   };
@@ -333,11 +335,10 @@ export function ThreeCustomizerMockup() {
         if (child.name === 'frontDecalMesh' || child.name === 'backDecalMesh') return;
 
         // Keep metallic zipper hardware chrome/silver
+        // In hoodie.glb: garment cloth meshes start with 'Cloth', hardware starts with '_mesh' or is inside Slider_1
         const isHardware =
-          child.parent?.name === 'Slider_1' ||
-          child.name.includes('_mesh_1') ||
-          child.name.includes('_mesh_2') ||
-          child.name.toLowerCase().includes('slider');
+          !child.name.startsWith('Cloth') &&
+          (child.name.startsWith('_mesh') || child.parent?.name === 'Slider_1');
 
         if (isHardware && child.material) {
           child.material.metalness = 0.9;
