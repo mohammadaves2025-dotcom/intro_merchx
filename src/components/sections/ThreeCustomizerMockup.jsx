@@ -41,9 +41,9 @@ const GARMENT_MODELS = [
     frontCenterY: -0.13,
     frontWidth: 0.88,
     frontHeight: 0.72,
-    backCenterY: -0.12,
-    backWidth: 0.88,
-    backHeight: 0.88
+    backCenterY: -0.15,
+    backWidth: 0.84,
+    backHeight: 0.84
   },
   {
     id: 'shirt',
@@ -55,9 +55,9 @@ const GARMENT_MODELS = [
     frontCenterY: 0.06,
     frontWidth: 0.72,
     frontHeight: 0.62,
-    backCenterY: 0.08,
-    backWidth: 0.74,
-    backHeight: 0.74
+    backCenterY: 0.06,
+    backWidth: 0.72,
+    backHeight: 0.72
   }
 ];
 
@@ -176,6 +176,7 @@ export function ThreeCustomizerMockup() {
 
   // Auto-switch to light studio when black or dark garments are selected on a dark backdrop
   const handleSelectColor = (color) => {
+    console.log('[Customizer] handleSelectColor clicked:', color.id, color.hex);
     setSelectedColor(color);
     if ((color.id === 'black' || color.id === 'navy' || color.id === 'crimson') && backdropMode === 'dark') {
       setBackdropMode('light');
@@ -277,7 +278,7 @@ export function ThreeCustomizerMockup() {
   };
 
   // 2. Generate High-Resolution Back Varsity Canvas Texture
-  // Massive 1400px tall athletic numbers and 540px player arch (+100% enlargement)
+  // Balanced collegiate varsity typography (customized player arch, jersey number & city tagline)
   const createBackTexture = (color, name, number, sub) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2048;
@@ -290,23 +291,22 @@ export function ThreeCustomizerMockup() {
     const outlineColor = color.outlineText;
 
     const centerX = 1024;
-    const centerY = 1024;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Top Player/Institution Arch on upper back (Massive 460px - 540px font, +100% enlargement)
+    // Top Player/Institution Arch on upper back (Clean arch with zero clipping)
     const nameString = (name || 'JAMIA').toUpperCase().trim();
     if (nameString.length > 0) {
-      const archRadius = 820;
+      const archRadius = 660;
       const maxSpread = Math.PI * 0.62;
       const minSpread = Math.PI * 0.44;
       const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.058) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = nameString.length > 1 ? totalAngle / (nameString.length - 1) : 0;
 
-      const nameFontSize = nameString.length > 10 ? 460 : 540;
+      const nameFontSize = nameString.length > 10 ? 380 : 440;
       ctx.font = `900 ${nameFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < nameString.length; i++) {
@@ -314,12 +314,14 @@ export function ThreeCustomizerMockup() {
         const angle = nameString.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY - 280);
+        ctx.translate(centerX, 1020);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 48;
+        ctx.lineWidth = 44;
+        ctx.lineJoin = 'miter';
+        ctx.miterLimit = 2;
         ctx.strokeText(char, 0, 0);
 
         ctx.fillStyle = textColor;
@@ -328,35 +330,38 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Colossal Collegiate Varsity Back Number (Colossal 1400px height, +100% enlargement!)
+    // Colossal Collegiate Varsity Back Number
     if (number && number.trim().length > 0) {
       const numString = number.trim();
-      ctx.font = '900 1400px "Barlow Condensed", "Impact", -apple-system, sans-serif';
+      const numFontSize = numString.length > 2 ? 820 : 980;
+      ctx.font = `900 ${numFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       // Heavy 2-Tone Varsity Outline
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 84;
-      ctx.strokeText(numString, centerX, 1140);
+      ctx.lineWidth = 64;
+      ctx.lineJoin = 'miter';
+      ctx.strokeText(numString, centerX, 1080);
 
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 38;
-      ctx.strokeText(numString, centerX, 1140);
+      ctx.lineWidth = 28;
+      ctx.lineJoin = 'miter';
+      ctx.strokeText(numString, centerX, 1080);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(numString, centerX, 1140);
+      ctx.fillText(numString, centerX, 1080);
     }
 
-    // Bottom Subtitle (Colossal 220px font, +100% enlargement)
+    // Bottom Subtitle Banner / City Tagline
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      ctx.font = '800 220px "Barlow Condensed", -apple-system, sans-serif';
+      ctx.font = '800 180px "Barlow Condensed", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 28;
-      ctx.strokeText(subString, centerX, 1800);
+      ctx.lineWidth = 24;
+      ctx.strokeText(subString, centerX, 1680);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(subString, centerX, 1800);
+      ctx.fillText(subString, centerX, 1680);
     }
 
     ctx.restore();
@@ -384,23 +389,25 @@ export function ThreeCustomizerMockup() {
           (child.name.startsWith('_mesh') || child.parent?.name === 'Slider_1');
 
         if (isHardware && child.material) {
-          child.material.metalness = 0.9;
-          child.material.roughness = 0.25;
-          child.material.color.setHex(0xd4d4d4);
-          child.material.needsUpdate = true;
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((mat) => {
+            mat.metalness = 0.9;
+            mat.roughness = 0.25;
+            mat.color.setHex(0xd4d4d4);
+            mat.needsUpdate = true;
+          });
           return;
         }
 
         if (child.material) {
-          if (!child.userData.originalMaterialCloned) {
-            child.material = child.material.clone();
-            child.userData.originalMaterialCloned = true;
-          }
-          child.material.color.copy(threeColor);
-          // High-grade fleece matte finish (anti-shine)
-          child.material.roughness = 0.88;
-          child.material.metalness = 0.02;
-          child.material.needsUpdate = true;
+          const mats = Array.isArray(child.material) ? child.material : [child.material];
+          mats.forEach((mat) => {
+            mat.color.copy(threeColor);
+            // High-grade fleece matte finish (anti-shine)
+            mat.roughness = 0.88;
+            mat.metalness = 0.02;
+            mat.needsUpdate = true;
+          });
         }
       }
     });
@@ -408,17 +415,16 @@ export function ThreeCustomizerMockup() {
 
   // 4. Build Surface-Conforming Decal Mesh via Raycasting (Desktop only, cached for 0ms transitions)
   const createConformingDecal = (garment, modelWrapper, targetMeshes, isFront, texture, scale) => {
-    const cacheKey = `${garment.id}_${isFront ? 'front' : 'back'}_${garment.scaleMultiplier}_${garment.frontWidth}_${garment.frontHeight}`;
+    const width = isFront ? garment.frontWidth : garment.backWidth;
+    const height = isFront ? garment.frontHeight : garment.backHeight;
+    const centerY = isFront ? garment.frontCenterY : garment.backCenterY;
+    const cacheKey = `${garment.id}_${isFront ? 'front' : 'back'}_${garment.scaleMultiplier}_${width}_${height}_${centerY}`;
     let geo;
 
     if (decalGeoCache.has(cacheKey)) {
       geo = decalGeoCache.get(cacheKey).clone();
     } else {
-      const width = isFront ? garment.frontWidth : garment.backWidth;
-      const height = isFront ? garment.frontHeight : garment.backHeight;
-      const centerY = isFront ? garment.frontCenterY : garment.backCenterY;
       const segs = 28;
-
       geo = new THREE.PlaneGeometry(width, height, segs, segs);
       const posAttr = geo.attributes.position;
       const raycaster = new THREE.Raycaster();
@@ -427,6 +433,7 @@ export function ThreeCustomizerMockup() {
 
       // Normal offset in model-local units
       const normalOffset = (isFront ? 0.0035 : -0.0035) / (scale || 1.0);
+      let lastHitZ = 0;
 
       for (let i = 0; i < posAttr.count; i++) {
         const lx = isFront ? posAttr.getX(i) : -posAttr.getX(i);
@@ -442,6 +449,9 @@ export function ThreeCustomizerMockup() {
           const hit = intersects[0];
           const localPt = modelWrapper.worldToLocal(hit.point.clone());
           posAttr.setXYZ(i, localPt.x, localPt.y, localPt.z + normalOffset);
+          lastHitZ = localPt.z + normalOffset;
+        } else {
+          posAttr.setXYZ(i, lx / (scale || 1.0), (wy - centerY) / (scale || 1.0), lastHitZ);
         }
       }
 
@@ -493,7 +503,7 @@ export function ThreeCustomizerMockup() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.18;
+    renderer.toneMappingExposure = 1.05;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
@@ -512,32 +522,32 @@ export function ThreeCustomizerMockup() {
     };
     controlsRef.current = controls;
 
-    // High-Definition Studio Lighting Rig with Silhouette Separation Rim Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+    // High-Definition Studio Lighting Rig (Balanced exposure so dark colors stay deep and light colors don't blow out)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
-    keyLight.position.set(3.5, 5.5, 4.5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.45);
+    keyLight.position.set(3.5, 5.0, 4.0);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xd2e3db, 1.4);
-    fillLight.position.set(-4.5, 1.5, 3.5);
+    const fillLight = new THREE.DirectionalLight(0xdbe7e2, 0.85);
+    fillLight.position.set(-4.0, 2.0, 3.0);
     scene.add(fillLight);
 
-    // Back & Side Rim Lights: Crucial for making black and dark grey garments pop with razor-sharp silhouette edges!
-    const backRimLight = new THREE.DirectionalLight(0xffffff, 3.4);
-    backRimLight.position.set(0, 5, -5);
+    // Back & Side Rim Lights: Placed at high angle to create crisp edge delineation without scorching the decal prints
+    const backRimLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    backRimLight.position.set(0, 6.0, -5.5);
     scene.add(backRimLight);
 
-    const leftRimLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    leftRimLight.position.set(-5, 2, -3);
+    const leftRimLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    leftRimLight.position.set(-5, 2.5, -2.5);
     scene.add(leftRimLight);
 
-    const rightRimLight = new THREE.DirectionalLight(0xffffff, 2.2);
-    rightRimLight.position.set(5, 2, -3);
+    const rightRimLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    rightRimLight.position.set(5, 2.5, -2.5);
     scene.add(rightRimLight);
 
     // Soft Studio Ground Shadow
@@ -564,7 +574,9 @@ export function ThreeCustomizerMockup() {
         } else {
           const diff = targetRotationYRef.current - currentModelRef.current.rotation.y;
           if (Math.abs(diff) > 0.002) {
-            currentModelRef.current.rotation.y += diff * 0.09;
+            currentModelRef.current.rotation.y += diff * 0.12;
+          } else {
+            currentModelRef.current.rotation.y = targetRotationYRef.current;
           }
         }
       }
@@ -647,7 +659,11 @@ export function ThreeCustomizerMockup() {
           child.castShadow = true;
           child.receiveShadow = true;
           if (child.material) {
-            child.material = child.material.clone();
+            if (Array.isArray(child.material)) {
+              child.material = child.material.map((m) => m.clone());
+            } else {
+              child.material = child.material.clone();
+            }
           }
           clothMeshes.push(child);
         }
@@ -703,6 +719,7 @@ export function ThreeCustomizerMockup() {
 
   // 7. Update Fabric Color (Desktop only)
   useEffect(() => {
+    console.log('[Customizer] useEffect selectedColor triggered:', selectedColor.hex, 'hasModel:', !!currentModelRef.current);
     if (isMobile) return;
     if (currentModelRef.current) {
       applyColorToModel(currentModelRef.current, selectedColor.hex);
@@ -748,17 +765,25 @@ export function ThreeCustomizerMockup() {
   const handleSetView = (view) => {
     setAutoRotate(false);
     setCurrentView(view);
-    if (controlsRef.current) {
+    if (controlsRef.current && cameraRef.current) {
       cameraRef.current.position.set(0, 0.08, 3.25);
       controlsRef.current.target.set(0, 0, 0);
       controlsRef.current.update();
     }
-    if (view === 'front') {
-      targetRotationYRef.current = 0;
-    } else if (view === 'back') {
-      targetRotationYRef.current = Math.PI;
-    } else if (view === 'angle') {
-      targetRotationYRef.current = Math.PI / 4;
+    if (currentModelRef.current) {
+      // Normalize rotation into [-PI, PI] to always take shortest, cleanest rotation path
+      let cur = currentModelRef.current.rotation.y % (Math.PI * 2);
+      if (cur > Math.PI) cur -= Math.PI * 2;
+      if (cur < -Math.PI) cur += Math.PI * 2;
+      currentModelRef.current.rotation.y = cur;
+
+      if (view === 'front') {
+        targetRotationYRef.current = 0;
+      } else if (view === 'back') {
+        targetRotationYRef.current = cur < 0 ? -Math.PI : Math.PI;
+      } else if (view === 'angle') {
+        targetRotationYRef.current = Math.PI / 4;
+      }
     }
   };
 
@@ -803,8 +828,8 @@ export function ThreeCustomizerMockup() {
     return {
       id: 'light',
       name: 'Light Studio',
-      containerClass: 'bg-gradient-to-b from-[#F7F8FA] via-[#EEF0F4] to-[#DFE3E9]',
-      spotlight: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.98) 0%, rgba(235,239,245,0.65) 50%, rgba(210,216,226,0.95) 100%)',
+      containerClass: 'bg-gradient-to-b from-[#F2F4F7] via-[#E6E9EE] to-[#D5DAE2]',
+      spotlight: 'radial-gradient(circle at 50% 40%, rgba(255,255,255,0.40) 0%, rgba(230,235,242,0.20) 50%, transparent 80%)',
       textColor: 'text-neutral-900'
     };
   };
