@@ -23,7 +23,9 @@ import {
   Zap,
   Sun,
   Moon,
-  Contrast
+  Contrast,
+  ZoomIn,
+  ZoomOut
 } from 'lucide-react';
 
 // Module-level global caches (persists across page navigations in memory for 0ms re-renders)
@@ -507,11 +509,12 @@ export function ThreeCustomizerMockup() {
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
-    // OrbitControls
+    // OrbitControls: Orbit smoothly by clicking & dragging, but do NOT capture wheel scroll so page scrolling is never interrupted
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.07;
     controls.enablePan = false;
+    controls.enableZoom = false; // Disable wheel hijacking for uninterrupted butter-smooth page scrolling
     controls.minDistance = 1.7;
     controls.maxDistance = 5.2;
     controls.maxPolarAngle = Math.PI / 1.75;
@@ -562,10 +565,23 @@ export function ThreeCustomizerMockup() {
     shadowMesh.position.y = -1.22;
     scene.add(shadowMesh);
 
+    // Visibility-aware render loop: pauses 3D rendering when scrolled away to save 100% GPU for smooth scrolling
+    let isVisible = true;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisible = entry.isIntersecting;
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(container);
+
     // Animation & Smooth Rotation Loop
     let animationFrameId;
     const animate = () => {
       animationFrameId = requestAnimationFrame(animate);
+
+      // Skip heavy WebGL draw calls when customizer is scrolled out of view
+      if (!isVisible) return;
 
       if (currentModelRef.current) {
         if (autoRotateRef.current) {
@@ -605,6 +621,7 @@ export function ThreeCustomizerMockup() {
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      observer.disconnect();
       window.removeEventListener('resize', handleResize);
       container.removeEventListener('pointerdown', handlePointerDown);
       controls.dispose();
@@ -784,6 +801,16 @@ export function ThreeCustomizerMockup() {
       } else if (view === 'angle') {
         targetRotationYRef.current = Math.PI / 4;
       }
+    }
+  };
+
+  const handleZoom = (factor) => {
+    if (cameraRef.current && controlsRef.current) {
+      cameraRef.current.position.multiplyScalar(factor);
+      const dist = cameraRef.current.position.distanceTo(controlsRef.current.target);
+      if (dist < 1.7) cameraRef.current.position.setLength(1.7);
+      if (dist > 5.2) cameraRef.current.position.setLength(5.2);
+      controlsRef.current.update();
     }
   };
 
@@ -1229,7 +1256,7 @@ export function ThreeCustomizerMockup() {
             <div
               ref={mountRef}
               className="w-full h-[660px] cursor-grab active:cursor-grabbing"
-              title="Click and drag to orbit in 360°. Scroll to zoom."
+              title="Click and drag to orbit in 360°"
             />
 
             {/* Viewport Floating Top Controls: Auto Rotate, View Tag & Studio Backdrop Switcher */}
@@ -1297,10 +1324,10 @@ export function ThreeCustomizerMockup() {
               </div>
             </div>
 
-            {/* Bottom Camera Angles & Orbit Guidance */}
+            {/* Bottom Camera Angles, Zoom Controls & Orbit Guidance */}
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
               <span className="bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-700/80 text-[11px] text-neutral-300">
-                Drag to Orbit 360° · Scroll to Zoom
+                Drag to Orbit 360°
               </span>
               <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-700/80 shadow-xl ml-auto">
                 <button
@@ -1335,6 +1362,25 @@ export function ThreeCustomizerMockup() {
                   }`}
                 >
                   Back View
+                </button>
+                <div className="h-4 w-px bg-neutral-700/80 mx-0.5" />
+                <button
+                  type="button"
+                  onClick={() => handleZoom(0.85)}
+                  className="p-1 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                  title="Zoom In"
+                  aria-label="Zoom In"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleZoom(1.18)}
+                  className="p-1 text-neutral-400 hover:text-white hover:bg-neutral-800 rounded-xs transition-colors"
+                  title="Zoom Out"
+                  aria-label="Zoom Out"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>

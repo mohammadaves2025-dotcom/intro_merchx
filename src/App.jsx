@@ -3,6 +3,7 @@ import { UtilityBar } from '@/components/layout/UtilityBar'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { ScrollToTop } from '@/components/ui/ScrollToTop'
+import { SmoothScroll } from '@/components/ui/SmoothScroll'
 
 // Eagerly imported standard page components for instantaneous 0ms page transitions & 0 white-screen flicker
 import Home from '@/pages/Home'
@@ -20,6 +21,7 @@ import NotFound from '@/pages/NotFound'
 function App() {
   return (
     <div className="flex flex-col min-h-screen">
+      <SmoothScroll />
       <ScrollToTop />
       <UtilityBar />
       <Navbar />
