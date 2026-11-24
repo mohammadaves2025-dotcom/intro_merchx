@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import jamiaHoodieImg from '@/assets/placeholder/jamia-hoodies.jpg';
+import hoodieBlackImg from '@/assets/products/hoodie-black.jpg';
+import hoodieCreamImg from '@/assets/products/hoodie-cream.jpg';
 import {
   RotateCw,
   Sliders,
@@ -14,7 +17,10 @@ import {
   Hash,
   Sparkles,
   Layers,
-  Palette
+  Palette,
+  Smartphone,
+  Monitor,
+  Zap
 } from 'lucide-react';
 
 const GARMENT_MODELS = [
@@ -105,6 +111,22 @@ export function ThreeCustomizerMockup() {
   const mountRef = useRef(null);
   const [activeGarment, setActiveGarment] = useState(GARMENT_MODELS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
+
+  // Mobile detection: screen width < 1024px
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 1024;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Front customization state
   const [institutionName, setInstitutionName] = useState('JAMIA');
@@ -363,9 +385,7 @@ export function ThreeCustomizerMockup() {
     });
   };
 
-  // 4. Build Surface-Conforming Decal Mesh via Raycasting
-  // This projects each grid vertex directly onto the garment's 3D mesh surface,
-  // following fabric folds and curves with ZERO floating and ZERO clipping.
+  // 4. Build Surface-Conforming Decal Mesh via Raycasting (Desktop only)
   const createConformingDecal = (garment, modelWrapper, targetMeshes, isFront, texture, scale) => {
     const width = isFront ? garment.frontWidth : garment.backWidth;
     const height = isFront ? garment.frontHeight : garment.backHeight;
@@ -378,11 +398,10 @@ export function ThreeCustomizerMockup() {
     const origin = new THREE.Vector3();
     const dir = new THREE.Vector3(0, 0, isFront ? -1 : 1);
 
-    // Normal offset in model-local units (approx 3.5mm above fabric in world units)
+    // Normal offset in model-local units
     const normalOffset = (isFront ? 0.0035 : -0.0035) / (scale || 1.0);
 
     for (let i = 0; i < posAttr.count; i++) {
-      // For back print, flip horizontal lookup so text is not mirrored when facing back
       const lx = isFront ? posAttr.getX(i) : -posAttr.getX(i);
       const ly = posAttr.getY(i);
 
@@ -394,7 +413,6 @@ export function ThreeCustomizerMockup() {
       const intersects = raycaster.intersectObjects(targetMeshes, false);
       if (intersects.length > 0) {
         const hit = intersects[0];
-        // Convert world hit point into modelWrapper's local space
         const localPt = modelWrapper.worldToLocal(hit.point.clone());
         posAttr.setXYZ(i, localPt.x, localPt.y, localPt.z + normalOffset);
       }
@@ -421,8 +439,9 @@ export function ThreeCustomizerMockup() {
     return mesh;
   };
 
-  // 5. Initialize Three.js Scene, Camera, Lights, and Orbit Controls
+  // 5. Initialize Three.js Scene (Desktop only — skipped completely on mobile)
   useEffect(() => {
+    if (isMobile) return;
     const container = mountRef.current;
     if (!container) return;
 
@@ -505,7 +524,6 @@ export function ThreeCustomizerMockup() {
           currentModelRef.current.rotation.y += 0.007;
           targetRotationYRef.current = currentModelRef.current.rotation.y;
         } else {
-          // Smoothly lerp towards target orientation when user flips views
           const diff = targetRotationYRef.current - currentModelRef.current.rotation.y;
           if (Math.abs(diff) > 0.002) {
             currentModelRef.current.rotation.y += diff * 0.09;
@@ -518,7 +536,6 @@ export function ThreeCustomizerMockup() {
     };
     animate();
 
-    // Resize Observer
     const handleResize = () => {
       if (!container || !renderer || !camera) return;
       const w = container.clientWidth;
@@ -546,10 +563,11 @@ export function ThreeCustomizerMockup() {
       }
       renderer.dispose();
     };
-  }, []);
+  }, [isMobile]);
 
-  // 6. Load 3D Garment Model & Attach Conforming Prints
+  // 6. Load 3D Garment Model (Desktop only — 0 MB download on mobile)
   useEffect(() => {
+    if (isMobile) return;
     const scene = sceneRef.current;
     if (!scene) return;
 
@@ -570,7 +588,6 @@ export function ThreeCustomizerMockup() {
       (gltf) => {
         const model = gltf.scene;
 
-        // Auto-center and normalize size
         const box = new THREE.Box3().setFromObject(model);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
@@ -589,7 +606,6 @@ export function ThreeCustomizerMockup() {
         modelWrapper.position.y = 0;
         modelWrapper.updateMatrixWorld(true);
 
-        // Gather fabric meshes for surface raycast
         const clothMeshes = [];
         model.traverse((child) => {
           if (child.isMesh) {
@@ -626,18 +642,19 @@ export function ThreeCustomizerMockup() {
         setLoadingModel(false);
       }
     );
-  }, [activeGarment]);
+  }, [activeGarment, isMobile]);
 
-  // 7. Update Fabric Color
+  // 7. Update Fabric Color (Desktop only)
   useEffect(() => {
+    if (isMobile) return;
     if (currentModelRef.current) {
       applyColorToModel(currentModelRef.current, selectedColor.hex);
     }
     updateFrontDecalTexture();
     updateBackDecalTexture();
-  }, [selectedColor]);
+  }, [selectedColor, isMobile]);
 
-  // 8. Update Front Decal Texture
+  // 8. Update Front Decal Texture (Desktop only)
   const updateFrontDecalTexture = () => {
     if (!frontDecalMeshRef.current) return;
     const newTex = createFrontTexture(selectedColor, institutionName, subText, estYear);
@@ -649,10 +666,11 @@ export function ThreeCustomizerMockup() {
   };
 
   useEffect(() => {
+    if (isMobile) return;
     updateFrontDecalTexture();
-  }, [institutionName, subText, estYear]);
+  }, [institutionName, subText, estYear, isMobile]);
 
-  // 9. Update Back Decal Texture & Visibility
+  // 9. Update Back Decal Texture & Visibility (Desktop only)
   const updateBackDecalTexture = () => {
     if (!backDecalMeshRef.current) return;
     backDecalMeshRef.current.visible = enableBackPrint;
@@ -665,15 +683,18 @@ export function ThreeCustomizerMockup() {
   };
 
   useEffect(() => {
+    if (isMobile) return;
     updateBackDecalTexture();
-  }, [enableBackPrint, backName, backNumber, backSub]);
+  }, [enableBackPrint, backName, backNumber, backSub, isMobile]);
 
   // 10. Camera / Orientation Preset Buttons
   const handleSetView = (view) => {
     setAutoRotate(false);
     setCurrentView(view);
     if (controlsRef.current) {
-      controlsRef.current.reset();
+      cameraRef.current.position.set(0, 0.08, 3.25);
+      controlsRef.current.target.set(0, 0, 0);
+      controlsRef.current.update();
     }
     if (view === 'front') {
       targetRotationYRef.current = 0;
@@ -684,7 +705,6 @@ export function ThreeCustomizerMockup() {
     }
   };
 
-  // Switch tab and auto-orient model to relevant side
   const handleSelectTab = (tab) => {
     setActiveTab(tab);
     if (tab === 'front') {
@@ -694,6 +714,14 @@ export function ThreeCustomizerMockup() {
     }
   };
 
+  // Helper for mobile garment static preview
+  const getMobileGarmentImage = () => {
+    if (selectedColor.id === 'white') return hoodieCreamImg;
+    if (selectedColor.id === 'black' || selectedColor.id === 'navy' || selectedColor.id === 'crimson')
+      return hoodieBlackImg;
+    return jamiaHoodieImg;
+  };
+
   return (
     <div className="bg-charcoal text-white rounded-xs border border-neutral-800 overflow-hidden shadow-2xl">
       {/* Top Header Bar */}
@@ -701,152 +729,139 @@ export function ThreeCustomizerMockup() {
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <span className="w-2.5 h-2.5 rounded-full bg-green-primary animate-pulse shrink-0" />
           <span className="font-heading text-base sm:text-lg font-bold uppercase tracking-wider text-white truncate">
-            3D Collegiate Customizer Studio
+            {isMobile ? 'Collegiate Apparel Customizer' : '3D Collegiate Customizer Studio'}
           </span>
-          <span className="hidden sm:inline-block px-2 py-0.5 rounded-xs bg-green-primary/20 text-green-primary text-[10px] font-extrabold uppercase tracking-widest border border-green-primary/40 shrink-0">
-            Surface Conformed · Front & Back Print
+          <span className="inline-block px-2 py-0.5 rounded-xs bg-green-primary/20 text-green-primary text-[10px] font-extrabold uppercase tracking-widest border border-green-primary/40 shrink-0">
+            {isMobile ? '⚡ Mobile-Optimized Preview' : 'Surface Conformed · Front & Back Print'}
           </span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-neutral-400 shrink-0">
-          <Box className="w-4 h-4 text-green-primary" />
-          <span className="hidden xs:inline">Three.js PBR Engine</span>
+          {isMobile ? (
+            <div className="flex items-center gap-1 text-[11px] text-green-primary font-medium">
+              <Zap className="w-3.5 h-3.5 text-green-primary" />
+              <span>Lightweight Mode</span>
+            </div>
+          ) : (
+            <>
+              <Box className="w-4 h-4 text-green-primary" />
+              <span className="hidden xs:inline">Three.js PBR Engine</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Main Studio Viewport & Customizer Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 min-h-[580px] lg:min-h-[660px]">
-        {/* Left: 3D Three.js Viewport (7 cols) */}
-        <div className="lg:col-span-7 relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col justify-between overflow-hidden">
-          {/* Subtle Ambient Radial Lighting */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(0,100,78,0.22),transparent_70%)] pointer-events-none" />
+      {/* MOBILE-ONLY LIGHTWEIGHT PREVIEW (Screen < 1024px) */}
+      {isMobile ? (
+        <div className="p-4 sm:p-6 bg-neutral-950 space-y-5">
+          {/* Static Garment Card with Interactive Live Customization Badges */}
+          <div className="relative rounded-xs overflow-hidden border border-neutral-800 bg-neutral-900 shadow-xl">
+            {/* Ambient subtle glow */}
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 50% 40%, ${selectedColor.hex}, transparent 70%)`
+              }}
+            />
 
-          {/* Loading Indicator */}
-          {loadingModel && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/85 backdrop-blur-sm space-y-3 p-4 text-center">
-              <div className="w-10 h-10 border-4 border-green-primary border-t-transparent rounded-full animate-spin" />
-              <p className="font-heading text-sm uppercase tracking-wider font-bold text-white">
-                Preparing High-Res 3D {activeGarment.shortName}...
-              </p>
-              <p className="text-[11px] text-neutral-400">Projecting surface-conformed prints...</p>
-            </div>
-          )}
-
-          {/* Load Error Fallback */}
-          {loadError && (
-            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/90 p-6 text-center space-y-3">
-              <p className="font-heading text-base uppercase font-bold text-red-400">
-                Failed to load 3D model
-              </p>
-              <p className="text-xs text-neutral-400 max-w-sm">
-                Please ensure WebGL is enabled in your browser or refresh the page.
-              </p>
-            </div>
-          )}
-
-          {/* Three.js Canvas Container - Responsive Height */}
-          <div
-            ref={mountRef}
-            className="w-full h-[360px] sm:h-[460px] lg:h-[660px] cursor-grab active:cursor-grabbing"
-            title="Click and drag to orbit in 360°. Scroll to zoom."
-          />
-
-          {/* Viewport Floating Top Controls: Auto Rotate & Current Angle Tag */}
-          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 z-10">
-            <button
-              type="button"
-              onClick={() => setAutoRotate(!autoRotate)}
-              className={`px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-xs text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
-                autoRotate
-                  ? 'bg-green-primary text-white'
-                  : 'bg-neutral-800/90 text-neutral-300 hover:bg-neutral-700'
-              }`}
-            >
-              <RotateCw className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
-              <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
-            </button>
-
-            <span className="hidden sm:inline-flex items-center px-2 py-1 rounded-xs bg-neutral-900/80 text-neutral-400 text-[10px] font-mono uppercase tracking-widest border border-neutral-800">
-              View: {currentView.toUpperCase()}
-            </span>
-          </div>
-
-          {/* Mobile Gestures Guidance Chip */}
-          <div className="absolute top-3 right-3 sm:hidden z-10 pointer-events-none">
-            <span className="bg-neutral-950/80 text-[10px] text-neutral-300 px-2 py-1 rounded-xs border border-neutral-800 flex items-center gap-1">
-              <Move className="w-3 h-3 text-green-primary" />
-              <span>1-Finger Orbit</span>
-            </span>
-          </div>
-
-          {/* Bottom Camera Angles & Orbit Guidance */}
-          <div className="absolute bottom-3 left-3 right-3 sm:bottom-4 sm:left-4 sm:right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
-            <span className="hidden sm:inline bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-800 text-[11px]">
-              Drag to Orbit 360° · Scroll to Zoom
-            </span>
-            <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-800 shadow-xl ml-auto">
-              <button
-                type="button"
-                onClick={() => handleSetView('front')}
-                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
-                  currentView === 'front'
-                    ? 'bg-green-primary text-white'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                }`}
-              >
-                Front View
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetView('angle')}
-                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
-                  currentView === 'angle'
-                    ? 'bg-green-primary text-white'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                }`}
-              >
-                3/4 Angle
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSetView('back')}
-                className={`px-2.5 sm:px-3 py-1 font-heading text-[11px] sm:text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
-                  currentView === 'back'
-                    ? 'bg-green-primary text-white'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
-                }`}
-              >
-                Back View
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Customization Controls Panel (5 cols) */}
-        <div className="lg:col-span-5 p-4 sm:p-6 lg:p-7 bg-neutral-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-neutral-800 overflow-y-auto max-h-[660px]">
-          <div className="space-y-5">
-            {/* Header */}
-            <div>
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-primary mb-1">
-                <Sliders className="w-4 h-4" />
-                <span>Parametric Customizer</span>
+            {/* Top View Toggle Buttons */}
+            <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-10">
+              <div className="flex items-center gap-1 bg-neutral-950/90 p-1 rounded-xs border border-neutral-800 shadow-md">
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('front')}
+                  className={`px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    currentView === 'front'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Front
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('back')}
+                  className={`px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    currentView === 'back'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                >
+                  Back
+                </button>
               </div>
-              <h3 className="font-heading text-xl sm:text-2xl font-black uppercase tracking-tight text-white">
-                Customize 3D Garment
-              </h3>
-              <p className="text-xs text-neutral-400 mt-1">
-                Real-time graphics mapped directly to the garment surface. No floating text.
-              </p>
+
+              <span className="px-2.5 py-1 bg-neutral-950/90 text-[10px] font-mono uppercase tracking-widest text-neutral-300 rounded-xs border border-neutral-800">
+                {selectedColor.name}
+              </span>
             </div>
 
-            {/* Customizer Tabs: Front Chest / Back Print / Fabric & Color */}
+            {/* Garment Image Showcase */}
+            <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full overflow-hidden flex items-center justify-center bg-neutral-950/60">
+              <img
+                src={getMobileGarmentImage()}
+                alt="MerchX Collegiate Garment Preview"
+                className="w-full h-full object-contain p-4 transition-all duration-300"
+              />
+
+              {/* Dynamic Live Typography Overlay Card */}
+              <div className="absolute inset-x-6 bottom-4 p-3 bg-neutral-950/90 backdrop-blur-md rounded-xs border border-neutral-800 shadow-2xl text-center">
+                {currentView === 'front' ? (
+                  <div className="space-y-1">
+                    <p
+                      className="font-heading text-xl sm:text-2xl font-black uppercase tracking-wider truncate"
+                      style={{ color: selectedColor.textOnDark ? '#FFFFFF' : '#00644E' }}
+                    >
+                      {institutionName || 'JAMIA'}
+                    </p>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-300 truncate">
+                      {subText || 'MILLIA ISLAMIA'}
+                    </p>
+                    <p
+                      className="text-[10px] font-mono tracking-widest font-semibold"
+                      style={{ color: selectedColor.accentText }}
+                    >
+                      ★ {estYear || 'EST. 1920'} ★
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p
+                      className="font-heading text-sm font-black uppercase tracking-widest text-neutral-300 truncate"
+                    >
+                      {backName || 'JAMIA'}
+                    </p>
+                    <p
+                      className="font-heading text-3xl font-black tracking-tight"
+                      style={{ color: selectedColor.textOnDark ? '#FFFFFF' : '#00644E' }}
+                    >
+                      {backNumber || '20'}
+                    </p>
+                    <p
+                      className="text-[10px] font-mono uppercase tracking-widest"
+                      style={{ color: selectedColor.accentText }}
+                    >
+                      {backSub || 'NEW DELHI'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Customization Controls (Tabs & Inputs) */}
+          <div className="bg-neutral-900 rounded-xs border border-neutral-800 p-4 space-y-4">
+            {/* Customizer Tabs */}
             <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-950 rounded-xs border border-neutral-800">
               <button
                 type="button"
-                onClick={() => handleSelectTab('front')}
-                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                onClick={() => {
+                  setActiveTab('front');
+                  setCurrentView('front');
+                }}
+                className={`py-2 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1 ${
                   activeTab === 'front'
                     ? 'bg-green-primary text-white shadow-md'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <Type className="w-3.5 h-3.5" />
@@ -854,11 +869,14 @@ export function ThreeCustomizerMockup() {
               </button>
               <button
                 type="button"
-                onClick={() => handleSelectTab('back')}
-                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                onClick={() => {
+                  setActiveTab('back');
+                  setCurrentView('back');
+                }}
+                className={`py-2 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1 ${
                   activeTab === 'back'
                     ? 'bg-green-primary text-white shadow-md'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <Hash className="w-3.5 h-3.5" />
@@ -867,41 +885,37 @@ export function ThreeCustomizerMockup() {
               <button
                 type="button"
                 onClick={() => setActiveTab('fabric')}
-                className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1 ${
                   activeTab === 'fabric'
                     ? 'bg-green-primary text-white shadow-md'
-                    : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 <Palette className="w-3.5 h-3.5" />
-                <span>Fabric</span>
+                <span>Color</span>
               </button>
             </div>
 
-            {/* TAB CONTENT 1: FRONT CHEST PRINT */}
+            {/* Tab 1: Front Inputs */}
             {activeTab === 'front' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="space-y-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
-                      Collegiate Arched Name
-                    </label>
-                    <span className="text-[10px] text-neutral-500 font-mono">Max 14 chars</span>
-                  </div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    University Name
+                  </label>
                   <input
                     type="text"
                     maxLength={14}
                     value={institutionName}
                     onChange={(e) => setInstitutionName(e.target.value)}
                     placeholder="e.g. JAMIA, STANFORD, IIT"
-                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
                   />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                      Subtitle Banner
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                      Subtitle
                     </label>
                     <input
                       type="text"
@@ -909,13 +923,12 @@ export function ThreeCustomizerMockup() {
                       value={subText}
                       onChange={(e) => setSubText(e.target.value)}
                       placeholder="e.g. MILLIA ISLAMIA"
-                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-2.5 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
                     />
                   </div>
-
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                      Year / Tagline
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                      Year
                     </label>
                     <input
                       type="text"
@@ -923,255 +936,122 @@ export function ThreeCustomizerMockup() {
                       value={estYear}
                       onChange={(e) => setEstYear(e.target.value)}
                       placeholder="e.g. EST. 1920"
-                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-2.5 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
                     />
-                  </div>
-                </div>
-
-                {/* Quick Presets for Front */}
-                <div>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
-                    Quick University Presets:
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      { name: 'JAMIA', sub: 'MILLIA ISLAMIA', year: 'EST. 1920' },
-                      { name: 'ENGINEERING', sub: 'FACULTY OF ENGG', year: 'CLASS OF 2025' },
-                      { name: 'MERCHX', sub: 'ATHLETIC HERITAGE', year: 'NEW DELHI' }
-                    ].map((preset, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                          setInstitutionName(preset.name);
-                          setSubText(preset.sub);
-                          setEstYear(preset.year);
-                        }}
-                        className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* TAB CONTENT 2: BACK VARSITY PRINT */}
+            {/* Tab 2: Back Inputs */}
             {activeTab === 'back' && (
-              <div className="space-y-4 animate-in fade-in duration-200">
-                {/* Enable / Disable Back Print Toggle */}
-                <div className="flex items-center justify-between p-3 bg-neutral-950 rounded-xs border border-neutral-800">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase tracking-wider text-neutral-200">
-                      Enable Back Print
-                    </span>
-                    <span className="text-[10px] text-green-primary font-mono uppercase bg-green-primary/10 px-1.5 py-0.5 rounded-xs border border-green-primary/30">
-                      Varsity Style
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setEnableBackPrint(!enableBackPrint)}
-                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                      enableBackPrint ? 'bg-green-primary' : 'bg-neutral-800'
-                    }`}
-                  >
-                    <div
-                      className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                        enableBackPrint ? 'translate-x-5' : 'translate-x-0'
-                      }`}
-                    />
-                  </button>
-                </div>
-
-                {enableBackPrint && (
-                  <>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div className="sm:col-span-2">
-                        <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                          Player / Alumni Name
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={12}
-                          value={backName}
-                          onChange={(e) => setBackName(e.target.value)}
-                          placeholder="e.g. JAMIA, VARIS, SENIOR"
-                          className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                          Varsity No.
-                        </label>
-                        <input
-                          type="text"
-                          maxLength={2}
-                          value={backNumber}
-                          onChange={(e) => setBackNumber(e.target.value)}
-                          placeholder="e.g. 20, 07"
-                          className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-black tracking-widest text-center rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
-                        Back Subtitle / City
-                      </label>
-                      <input
-                        type="text"
-                        maxLength={18}
-                        value={backSub}
-                        onChange={(e) => setBackSub(e.target.value)}
-                        placeholder="e.g. NEW DELHI, VARSITY 25"
-                        className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
-                      />
-                    </div>
-
-                    {/* Quick Presets for Back */}
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
-                        Popular Back Number Presets:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {[
-                          { name: 'JAMIA', num: '20', sub: 'EST. 1920' },
-                          { name: 'SENIOR', num: '25', sub: 'ENGINEERING' },
-                          { name: 'CAPTAIN', num: '07', sub: 'NEW DELHI' },
-                          { name: 'ALUMNI', num: '99', sub: 'VARSITY CLUB' }
-                        ].map((preset, idx) => (
-                          <button
-                            key={idx}
-                            type="button"
-                            onClick={() => {
-                              setBackName(preset.name);
-                              setBackNumber(preset.num);
-                              setBackSub(preset.sub);
-                            }}
-                            className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
-                          >
-                            #{preset.num} {preset.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* TAB CONTENT 3: FABRIC COLOR & GARMENT MESH */}
-            {activeTab === 'fabric' && (
-              <div className="space-y-5 animate-in fade-in duration-200">
-                {/* 1. Select 3D Garment Silhouette */}
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
-                    Garment Silhouette
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {GARMENT_MODELS.map((garment) => (
-                      <button
-                        key={garment.id}
-                        type="button"
-                        onClick={() => setActiveGarment(garment)}
-                        className={`p-2.5 sm:p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
-                          activeGarment.id === garment.id
-                            ? 'bg-neutral-800 border-green-primary ring-1 ring-green-primary text-white'
-                            : 'bg-neutral-950/60 border-neutral-800 text-neutral-400 hover:border-neutral-700'
-                        }`}
-                      >
-                        <Shirt
-                          className={`w-5 h-5 shrink-0 ${
-                            activeGarment.id === garment.id ? 'text-green-primary' : 'text-neutral-500'
-                          }`}
-                        />
-                        <div className="truncate">
-                          <p className="font-heading text-xs font-bold uppercase tracking-wider truncate">
-                            {garment.shortName}
-                          </p>
-                          <p className="text-[10px] text-neutral-500 truncate">{garment.fabric}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 2. Color Swatches (Green, White, Black prioritized) */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
-                      Fabric Colorway
+              <div className="space-y-3">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="col-span-2">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                      Player / Alumni Name
                     </label>
-                    <span className="text-xs font-bold text-green-primary">{selectedColor.name}</span>
+                    <input
+                      type="text"
+                      maxLength={12}
+                      value={backName}
+                      onChange={(e) => setBackName(e.target.value)}
+                      placeholder="e.g. JAMIA, VARIS"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
+                    />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
-                    {COLOR_SWATCHES.map((color) => (
-                      <button
-                        key={color.id}
-                        type="button"
-                        onClick={() => setSelectedColor(color)}
-                        className={`p-2.5 rounded-xs border flex sm:flex-col items-center justify-between sm:justify-center gap-2 transition-all ${
-                          selectedColor.id === color.id
-                            ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
-                            : 'bg-neutral-950/80 border-neutral-800 hover:border-neutral-700'
-                        }`}
-                      >
-                        <div
-                          className="w-7 h-7 rounded-full border border-neutral-600 shadow-md flex items-center justify-center shrink-0"
-                          style={{ backgroundColor: color.hex }}
-                        >
-                          {selectedColor.id === color.id && (
-                            <Check
-                              className={`w-3.5 h-3.5 ${
-                                color.textOnDark ? 'text-white' : 'text-charcoal'
-                              }`}
-                            />
-                          )}
-                        </div>
-                        <div className="text-left sm:text-center min-w-0">
-                          <p className="font-heading text-[11px] font-bold uppercase truncate">
-                            {color.badge}
-                          </p>
-                        </div>
-                      </button>
-                    ))}
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                      Number
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={2}
+                      value={backNumber}
+                      onChange={(e) => setBackNumber(e.target.value)}
+                      placeholder="e.g. 20"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-black tracking-widest text-center rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
+                    />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    City / Department
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={18}
+                    value={backSub}
+                    onChange={(e) => setBackSub(e.target.value)}
+                    placeholder="e.g. NEW DELHI"
+                    className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[42px]"
+                  />
                 </div>
               </div>
             )}
 
-            {/* Quick Colorway Switcher (always visible at bottom of tab for convenience) */}
-            {activeTab !== 'fabric' && (
-              <div className="pt-2 border-t border-neutral-800/80">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
-                    Quick Colorway:
-                  </span>
-                  <span className="text-[11px] text-green-primary font-semibold">
-                    {selectedColor.name}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
+            {/* Tab 3: Color Swatches */}
+            {activeTab === 'fabric' && (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                  Choose Colorway: <span className="text-green-primary">{selectedColor.name}</span>
+                </label>
+                <div className="grid grid-cols-5 gap-2">
                   {COLOR_SWATCHES.map((color) => (
                     <button
                       key={color.id}
                       type="button"
                       onClick={() => setSelectedColor(color)}
-                      className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                      className={`p-2 rounded-xs border flex flex-col items-center justify-center gap-1.5 transition-all ${
                         selectedColor.id === color.id
-                          ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
-                          : 'border-transparent hover:scale-105'
+                          ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
+                          : 'bg-neutral-950 border-neutral-800'
+                      }`}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-full border border-neutral-600 shadow-md flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: color.hex }}
+                      >
+                        {selectedColor.id === color.id && (
+                          <Check
+                            className={`w-3.5 h-3.5 ${
+                              color.textOnDark ? 'text-white' : 'text-charcoal'
+                            }`}
+                          />
+                        )}
+                      </div>
+                      <p className="font-heading text-[10px] font-bold uppercase truncate">
+                        {color.badge}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Colorway Switcher (always accessible) */}
+            {activeTab !== 'fabric' && (
+              <div className="pt-2 border-t border-neutral-800 flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                  Quick Color:
+                </span>
+                <div className="flex items-center gap-1.5">
+                  {COLOR_SWATCHES.map((color) => (
+                    <button
+                      key={color.id}
+                      type="button"
+                      onClick={() => setSelectedColor(color)}
+                      className={`w-7 h-7 rounded-full border transition-transform ${
+                        selectedColor.id === color.id
+                          ? 'border-white scale-110 shadow-lg ring-1 ring-green-primary'
+                          : 'border-transparent'
                       }`}
                       style={{ backgroundColor: color.hex }}
                       title={color.name}
-                      aria-label={`Select color ${color.name}`}
                     >
                       {selectedColor.id === color.id && (
                         <Check
-                          className={`w-3.5 h-3.5 mx-auto ${
+                          className={`w-3 h-3 mx-auto ${
                             color.textOnDark ? 'text-white' : 'text-charcoal'
                           }`}
                         />
@@ -1183,22 +1063,496 @@ export function ThreeCustomizerMockup() {
             )}
           </div>
 
-          {/* Bottom Caption & Disclaimer (Brief Rule 3) */}
-          <div className="mt-6 pt-4 border-t border-neutral-800">
-            <div className="flex items-center justify-between text-xs text-neutral-400">
-              <span className="font-semibold text-neutral-300 truncate max-w-[220px]">
-                {activeGarment.name.split('(')[0]}
-              </span>
-              <span className="text-[10px] font-bold text-green-primary uppercase shrink-0">
-                Phase 3 Vision
-              </span>
+          {/* Desktop 3D Mode Callout Banner on Mobile */}
+          <div className="p-3.5 bg-neutral-900/90 rounded-xs border border-neutral-800 flex items-start gap-3">
+            <Monitor className="w-5 h-5 text-green-primary shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <p className="text-xs font-bold text-white uppercase tracking-wider">
+                Full 3D Studio on Desktop
+              </p>
+              <p className="text-[11px] text-neutral-400 leading-relaxed">
+                Open this studio on a desktop or laptop to explore the real-time 360° Three.js 3D parametric customizer.
+              </p>
             </div>
-            <p className="text-[11px] text-neutral-500 italic mt-1 leading-snug">
-              Captioned Concept — Coming Soon · Proprietary MerchX 3D Fashion-Tech Preview.
-            </p>
           </div>
         </div>
-      </div>
+      ) : (
+        /* DESKTOP-ONLY FULL 3D ENGINE (Screen >= 1024px — NO CHANGES TO DESKTOP VIEW) */
+        <div className="grid grid-cols-12 min-h-[660px]">
+          {/* Left: 3D Three.js Viewport (7 cols) */}
+          <div className="col-span-7 relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col justify-between overflow-hidden">
+            {/* Subtle Ambient Radial Lighting */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(0,100,78,0.22),transparent_70%)] pointer-events-none" />
+
+            {/* Loading Indicator */}
+            {loadingModel && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/85 backdrop-blur-sm space-y-3 p-4 text-center">
+                <div className="w-10 h-10 border-4 border-green-primary border-t-transparent rounded-full animate-spin" />
+                <p className="font-heading text-sm uppercase tracking-wider font-bold text-white">
+                  Preparing High-Res 3D {activeGarment.shortName}...
+                </p>
+                <p className="text-[11px] text-neutral-400">Projecting surface-conformed prints...</p>
+              </div>
+            )}
+
+            {/* Load Error Fallback */}
+            {loadError && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-neutral-950/90 p-6 text-center space-y-3">
+                <p className="font-heading text-base uppercase font-bold text-red-400">
+                  Failed to load 3D model
+                </p>
+                <p className="text-xs text-neutral-400 max-w-sm">
+                  Please ensure WebGL is enabled in your browser or refresh the page.
+                </p>
+              </div>
+            )}
+
+            {/* Three.js Canvas Container */}
+            <div
+              ref={mountRef}
+              className="w-full h-[660px] cursor-grab active:cursor-grabbing"
+              title="Click and drag to orbit in 360°. Scroll to zoom."
+            />
+
+            {/* Viewport Floating Top Controls: Auto Rotate & Current Angle Tag */}
+            <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+              <button
+                type="button"
+                onClick={() => setAutoRotate(!autoRotate)}
+                className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
+                  autoRotate
+                    ? 'bg-green-primary text-white'
+                    : 'bg-neutral-800/90 text-neutral-300 hover:bg-neutral-700'
+                }`}
+              >
+                <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+                <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
+              </button>
+
+              <span className="inline-flex items-center px-2 py-1 rounded-xs bg-neutral-900/80 text-neutral-400 text-[10px] font-mono uppercase tracking-widest border border-neutral-800">
+                View: {currentView.toUpperCase()}
+              </span>
+            </div>
+
+            {/* Bottom Camera Angles & Orbit Guidance */}
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
+              <span className="bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-800 text-[11px]">
+                Drag to Orbit 360° · Scroll to Zoom
+              </span>
+              <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-800 shadow-xl ml-auto">
+                <button
+                  type="button"
+                  onClick={() => handleSetView('front')}
+                  className={`px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    currentView === 'front'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  Front View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetView('angle')}
+                  className={`px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    currentView === 'angle'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  3/4 Angle
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSetView('back')}
+                  className={`px-3 py-1 font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    currentView === 'back'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-800'
+                  }`}
+                >
+                  Back View
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Customization Controls Panel (5 cols) */}
+          <div className="col-span-5 p-7 bg-neutral-900 flex flex-col justify-between border-l border-neutral-800 overflow-y-auto max-h-[660px]">
+            <div className="space-y-5">
+              {/* Header */}
+              <div>
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-green-primary mb-1">
+                  <Sliders className="w-4 h-4" />
+                  <span>Parametric Customizer</span>
+                </div>
+                <h3 className="font-heading text-2xl font-black uppercase tracking-tight text-white">
+                  Customize 3D Garment
+                </h3>
+                <p className="text-xs text-neutral-400 mt-1">
+                  Real-time graphics mapped directly to the garment surface. No floating text.
+                </p>
+              </div>
+
+              {/* Customizer Tabs: Front Chest / Back Print / Fabric & Color */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-950 rounded-xs border border-neutral-800">
+                <button
+                  type="button"
+                  onClick={() => handleSelectTab('front')}
+                  className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'front'
+                      ? 'bg-green-primary text-white shadow-md'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <Type className="w-3.5 h-3.5" />
+                  <span>Front</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelectTab('back')}
+                  className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'back'
+                      ? 'bg-green-primary text-white shadow-md'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <Hash className="w-3.5 h-3.5" />
+                  <span>Back</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('fabric')}
+                  className={`py-2 px-1 text-center font-heading text-xs font-bold uppercase tracking-wider rounded-xs transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'fabric'
+                      ? 'bg-green-primary text-white shadow-md'
+                      : 'text-neutral-400 hover:text-white hover:bg-neutral-900'
+                  }`}
+                >
+                  <Palette className="w-3.5 h-3.5" />
+                  <span>Fabric</span>
+                </button>
+              </div>
+
+              {/* TAB CONTENT 1: FRONT CHEST PRINT */}
+              {activeTab === 'front' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                        Collegiate Arched Name
+                      </label>
+                      <span className="text-[10px] text-neutral-500 font-mono">Max 14 chars</span>
+                    </div>
+                    <input
+                      type="text"
+                      maxLength={14}
+                      value={institutionName}
+                      onChange={(e) => setInstitutionName(e.target.value)}
+                      placeholder="e.g. JAMIA, STANFORD, IIT"
+                      className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-sm uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                        Subtitle Banner
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={18}
+                        value={subText}
+                        onChange={(e) => setSubText(e.target.value)}
+                        placeholder="e.g. MILLIA ISLAMIA"
+                        className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                        Year / Tagline
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={12}
+                        value={estYear}
+                        onChange={(e) => setEstYear(e.target.value)}
+                        placeholder="e.g. EST. 1920"
+                        className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quick Presets for Front */}
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
+                      Quick University Presets:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { name: 'JAMIA', sub: 'MILLIA ISLAMIA', year: 'EST. 1920' },
+                        { name: 'ENGINEERING', sub: 'FACULTY OF ENGG', year: 'CLASS OF 2025' },
+                        { name: 'MERCHX', sub: 'ATHLETIC HERITAGE', year: 'NEW DELHI' }
+                      ].map((preset, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            setInstitutionName(preset.name);
+                            setSubText(preset.sub);
+                            setEstYear(preset.year);
+                          }}
+                          className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
+                        >
+                          {preset.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB CONTENT 2: BACK VARSITY PRINT */}
+              {activeTab === 'back' && (
+                <div className="space-y-4 animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between p-3 bg-neutral-950 rounded-xs border border-neutral-800">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-neutral-200">
+                        Enable Back Print
+                      </span>
+                      <span className="text-[10px] text-green-primary font-mono uppercase bg-green-primary/10 px-1.5 py-0.5 rounded-xs border border-green-primary/30">
+                        Varsity Style
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnableBackPrint(!enableBackPrint)}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                        enableBackPrint ? 'bg-green-primary' : 'bg-neutral-800'
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          enableBackPrint ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {enableBackPrint && (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="col-span-2">
+                          <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                            Player / Alumni Name
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={12}
+                            value={backName}
+                            onChange={(e) => setBackName(e.target.value)}
+                            placeholder="e.g. JAMIA, VARIS, SENIOR"
+                            className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                            Varsity No.
+                          </label>
+                          <input
+                            type="text"
+                            maxLength={2}
+                            value={backNumber}
+                            onChange={(e) => setBackNumber(e.target.value)}
+                            placeholder="e.g. 20, 07"
+                            className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3 py-2 text-xs uppercase font-heading font-black tracking-widest text-center rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-1.5">
+                          Back Subtitle / City
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={18}
+                          value={backSub}
+                          onChange={(e) => setBackSub(e.target.value)}
+                          placeholder="e.g. NEW DELHI, VARSITY 25"
+                          className="w-full bg-neutral-950 border border-neutral-700 focus:border-green-primary px-3.5 py-2.5 text-xs uppercase font-heading font-bold tracking-wider rounded-xs text-white placeholder-neutral-600 focus:outline-none min-h-[44px]"
+                        />
+                      </div>
+
+                      {/* Quick Presets for Back */}
+                      <div>
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 block mb-1.5">
+                          Popular Back Number Presets:
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {[
+                            { name: 'JAMIA', num: '20', sub: 'EST. 1920' },
+                            { name: 'SENIOR', num: '25', sub: 'ENGINEERING' },
+                            { name: 'CAPTAIN', num: '07', sub: 'NEW DELHI' },
+                            { name: 'ALUMNI', num: '99', sub: 'VARSITY CLUB' }
+                          ].map((preset, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => {
+                                setBackName(preset.name);
+                                setBackNumber(preset.num);
+                                setBackSub(preset.sub);
+                              }}
+                              className="text-[11px] px-2.5 py-1 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 text-neutral-300 rounded-xs transition-colors"
+                            >
+                              #{preset.num} {preset.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* TAB CONTENT 3: FABRIC COLOR & GARMENT MESH */}
+              {activeTab === 'fabric' && (
+                <div className="space-y-5 animate-in fade-in duration-200">
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-300 mb-2">
+                      Garment Silhouette
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {GARMENT_MODELS.map((garment) => (
+                        <button
+                          key={garment.id}
+                          type="button"
+                          onClick={() => setActiveGarment(garment)}
+                          className={`p-3 rounded-xs border text-left flex items-center gap-2.5 transition-all ${
+                            activeGarment.id === garment.id
+                              ? 'bg-neutral-800 border-green-primary ring-1 ring-green-primary text-white'
+                              : 'bg-neutral-950/60 border-neutral-800 text-neutral-400 hover:border-neutral-700'
+                          }`}
+                        >
+                          <Shirt
+                            className={`w-5 h-5 shrink-0 ${
+                              activeGarment.id === garment.id ? 'text-green-primary' : 'text-neutral-500'
+                            }`}
+                          />
+                          <div className="truncate">
+                            <p className="font-heading text-xs font-bold uppercase tracking-wider truncate">
+                              {garment.shortName}
+                            </p>
+                            <p className="text-[10px] text-neutral-500 truncate">{garment.fabric}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold uppercase tracking-wider text-neutral-300">
+                        Fabric Colorway
+                      </label>
+                      <span className="text-xs font-bold text-green-primary">{selectedColor.name}</span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-2">
+                      {COLOR_SWATCHES.map((color) => (
+                        <button
+                          key={color.id}
+                          type="button"
+                          onClick={() => setSelectedColor(color)}
+                          className={`p-2.5 rounded-xs border flex flex-col items-center justify-center gap-2 transition-all ${
+                            selectedColor.id === color.id
+                              ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
+                              : 'bg-neutral-950/80 border-neutral-800 hover:border-neutral-700'
+                          }`}
+                        >
+                          <div
+                            className="w-7 h-7 rounded-full border border-neutral-600 shadow-md flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: color.hex }}
+                          >
+                            {selectedColor.id === color.id && (
+                              <Check
+                                className={`w-3.5 h-3.5 ${
+                                  color.textOnDark ? 'text-white' : 'text-charcoal'
+                                }`}
+                              />
+                            )}
+                          </div>
+                          <div className="text-center min-w-0">
+                            <p className="font-heading text-[11px] font-bold uppercase truncate">
+                              {color.badge}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Colorway Switcher (always visible at bottom of tab) */}
+              {activeTab !== 'fabric' && (
+                <div className="pt-2 border-t border-neutral-800/80">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                      Quick Colorway:
+                    </span>
+                    <span className="text-[11px] text-green-primary font-semibold">
+                      {selectedColor.name}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {COLOR_SWATCHES.map((color) => (
+                      <button
+                        key={color.id}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className={`w-8 h-8 rounded-full border-2 transition-transform ${
+                          selectedColor.id === color.id
+                            ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
+                            : 'border-transparent hover:scale-105'
+                        }`}
+                        style={{ backgroundColor: color.hex }}
+                        title={color.name}
+                        aria-label={`Select color ${color.name}`}
+                      >
+                        {selectedColor.id === color.id && (
+                          <Check
+                            className={`w-3.5 h-3.5 mx-auto ${
+                              color.textOnDark ? 'text-white' : 'text-charcoal'
+                            }`}
+                          />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Caption & Disclaimer (Brief Rule 3) */}
+            <div className="mt-6 pt-4 border-t border-neutral-800">
+              <div className="flex items-center justify-between text-xs text-neutral-400">
+                <span className="font-semibold text-neutral-300 truncate max-w-[220px]">
+                  {activeGarment.name.split('(')[0]}
+                </span>
+                <span className="text-[10px] font-bold text-green-primary uppercase shrink-0">
+                  Phase 3 Vision
+                </span>
+              </div>
+              <p className="text-[11px] text-neutral-500 italic mt-1 leading-snug">
+                Captioned Concept — Coming Soon · Proprietary MerchX 3D Fashion-Tech Preview.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
