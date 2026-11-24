@@ -20,7 +20,10 @@ import {
   Palette,
   Smartphone,
   Monitor,
-  Zap
+  Zap,
+  Sun,
+  Moon,
+  Contrast
 } from 'lucide-react';
 
 const GARMENT_MODELS = [
@@ -32,11 +35,11 @@ const GARMENT_MODELS = [
     file: '/models/hoodie.glb',
     scaleMultiplier: 1.0,
     frontCenterY: -0.17,
-    frontWidth: 0.58,
-    frontHeight: 0.48,
+    frontWidth: 0.62,
+    frontHeight: 0.52,
     backCenterY: -0.16,
-    backWidth: 0.58,
-    backHeight: 0.58
+    backWidth: 0.62,
+    backHeight: 0.62
   },
   {
     id: 'shirt',
@@ -46,11 +49,11 @@ const GARMENT_MODELS = [
     file: '/models/shirt_baked.glb',
     scaleMultiplier: 1.0,
     frontCenterY: 0.05,
-    frontWidth: 0.52,
-    frontHeight: 0.46,
+    frontWidth: 0.54,
+    frontHeight: 0.48,
     backCenterY: 0.08,
-    backWidth: 0.52,
-    backHeight: 0.52
+    backWidth: 0.54,
+    backHeight: 0.54
   }
 ];
 
@@ -112,6 +115,9 @@ export function ThreeCustomizerMockup() {
   const [activeGarment, setActiveGarment] = useState(GARMENT_MODELS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
 
+  // Studio Backdrop Mode: 'studio' (Balanced Neutral Grey) | 'light' (Clean White/Bone) | 'dark' (Onyx)
+  const [backdropMode, setBackdropMode] = useState('studio');
+
   // Mobile detection: screen width < 1024px
   const [isMobile, setIsMobile] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -164,7 +170,16 @@ export function ThreeCustomizerMockup() {
     autoRotateRef.current = autoRotate;
   }, [autoRotate]);
 
-  // 1. Generate High-Resolution Front Chest Canvas Texture (2048 x 2048 for doubled typography size)
+  // Auto-switch away from dark backdrop when black or dark garments are selected
+  const handleSelectColor = (color) => {
+    setSelectedColor(color);
+    if ((color.id === 'black' || color.id === 'navy' || color.id === 'crimson') && backdropMode === 'dark') {
+      setBackdropMode('studio');
+    }
+  };
+
+  // 1. Generate High-Resolution Front Chest Canvas Texture
+  // Massive, bold, 100% enlarged collegiate tackle-twill typography
   const createFrontTexture = (color, name, sub, year) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2048;
@@ -177,24 +192,25 @@ export function ThreeCustomizerMockup() {
     const outlineColor = color.outlineText;
 
     const centerX = 1024;
-    const centerY = 1024;
+    const centerY = 850;
 
     ctx.save();
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Bold Arched Collegiate Top Text (up by 100% in font size & span)
+    // Massive Arched Collegiate Top Text (Colossal 420px - 480px font)
     const textToArch = (name || 'JAMIA').toUpperCase().trim();
     if (textToArch.length > 0) {
-      const archRadius = 880;
-      const maxSpread = Math.PI * 0.52;
-      const minSpread = Math.PI * 0.38;
-      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (textToArch.length * 0.048) * Math.PI));
+      const archRadius = 620;
+      // Tight, continuous athletic arch so letters hug closely together
+      const maxSpread = Math.PI * 0.60;
+      const minSpread = Math.PI * 0.42;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (textToArch.length * 0.052) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = textToArch.length > 1 ? totalAngle / (textToArch.length - 1) : 0;
 
-      // Font size up by 100%: 180px - 250px
-      const fontSize = textToArch.length > 10 ? 180 : textToArch.length > 6 ? 210 : 250;
+      // True 100% enlarged font size: 360px - 460px
+      const fontSize = textToArch.length > 10 ? 340 : textToArch.length > 6 ? 400 : 460;
       ctx.font = `900 ${fontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < textToArch.length; i++) {
@@ -202,49 +218,49 @@ export function ThreeCustomizerMockup() {
         const angle = textToArch.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY + 320);
+        ctx.translate(centerX, centerY + 200);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
-        // Deep drop/outline shadow
+        // Heavy athletic drop/outline border
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 28;
+        ctx.lineWidth = 42;
         ctx.lineJoin = 'miter';
         ctx.miterLimit = 2;
         ctx.strokeText(char, 0, 0);
 
-        // Main fill
+        // Inner solid fill
         ctx.fillStyle = textColor;
         ctx.fillText(char, 0, 0);
         ctx.restore();
       }
     }
 
-    // Subtitle Text (up by 100%: 100px - 125px)
+    // Subtitle Text (Colossal 180px - 210px font)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      const subFontSize = subString.length > 14 ? 100 : 120;
-      ctx.font = `800 ${subFontSize}px "Barlow Condensed", -apple-system, sans-serif`;
+      const subFontSize = subString.length > 14 ? 160 : 190;
+      ctx.font = `900 ${subFontSize}px "Barlow Condensed", -apple-system, sans-serif`;
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 18;
-      ctx.strokeText(subString, centerX, centerY + 180);
+      ctx.lineWidth = 26;
+      ctx.strokeText(subString, centerX, 1020);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(subString, centerX, centerY + 180);
+      ctx.fillText(subString, centerX, 1020);
     }
 
-    // Established Year or Tag (up by 100%: 64px)
+    // Established Year or Tag (Colossal 96px font)
     if (year && year.trim().length > 0) {
       const yearString = year.toUpperCase().trim();
-      ctx.font = '700 64px "Inter", -apple-system, sans-serif';
+      ctx.font = '800 96px "Inter", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 10;
-      ctx.strokeText(`★  ${yearString}  ★`, centerX, centerY + 300);
+      ctx.lineWidth = 14;
+      ctx.strokeText(`★  ${yearString}  ★`, centerX, 1220);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(`★  ${yearString}  ★`, centerX, centerY + 300);
+      ctx.fillText(`★  ${yearString}  ★`, centerX, 1220);
     }
 
     ctx.restore();
@@ -256,7 +272,8 @@ export function ThreeCustomizerMockup() {
     return texture;
   };
 
-  // 2. Generate High-Resolution Back Varsity Canvas Texture (2048 x 2048, up by 100% in size)
+  // 2. Generate High-Resolution Back Varsity Canvas Texture
+  // Massive 950px tall athletic numbers and 360px player arch
   const createBackTexture = (color, name, number, sub) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2048;
@@ -275,17 +292,17 @@ export function ThreeCustomizerMockup() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Top Player/Institution Arch on upper back (up by 100%: 170px - 210px)
+    // Top Player/Institution Arch on upper back (Massive 340px - 380px font)
     const nameString = (name || 'JAMIA').toUpperCase().trim();
     if (nameString.length > 0) {
-      const archRadius = 920;
-      const maxSpread = Math.PI * 0.48;
-      const minSpread = Math.PI * 0.36;
-      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.046) * Math.PI));
+      const archRadius = 720;
+      const maxSpread = Math.PI * 0.54;
+      const minSpread = Math.PI * 0.38;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.050) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = nameString.length > 1 ? totalAngle / (nameString.length - 1) : 0;
 
-      const nameFontSize = nameString.length > 10 ? 170 : 210;
+      const nameFontSize = nameString.length > 10 ? 300 : 360;
       ctx.font = `900 ${nameFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < nameString.length; i++) {
@@ -293,12 +310,12 @@ export function ThreeCustomizerMockup() {
         const angle = nameString.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY - 140);
+        ctx.translate(centerX, centerY - 280);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 28;
+        ctx.lineWidth = 36;
         ctx.strokeText(char, 0, 0);
 
         ctx.fillStyle = textColor;
@@ -307,35 +324,35 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Giant Collegiate Varsity Back Number (up by 100%: 660px height!)
+    // Colossal Collegiate Varsity Back Number (Massive 950px height!)
     if (number && number.trim().length > 0) {
       const numString = number.trim();
-      ctx.font = '900 660px "Barlow Condensed", "Impact", -apple-system, sans-serif';
+      ctx.font = '900 950px "Barlow Condensed", "Impact", -apple-system, sans-serif';
 
       // Heavy 2-Tone Varsity Outline
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 48;
-      ctx.strokeText(numString, centerX, centerY + 80);
+      ctx.lineWidth = 64;
+      ctx.strokeText(numString, centerX, 1100);
 
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 24;
-      ctx.strokeText(numString, centerX, centerY + 80);
+      ctx.lineWidth = 30;
+      ctx.strokeText(numString, centerX, 1100);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(numString, centerX, centerY + 80);
+      ctx.fillText(numString, centerX, 1100);
     }
 
-    // Bottom Subtitle (up by 100%: 88px)
+    // Bottom Subtitle (Colossal 130px font)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      ctx.font = '800 88px "Barlow Condensed", -apple-system, sans-serif';
+      ctx.font = '800 130px "Barlow Condensed", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 16;
-      ctx.strokeText(subString, centerX, centerY + 520);
+      ctx.lineWidth = 20;
+      ctx.strokeText(subString, centerX, 1680);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(subString, centerX, centerY + 520);
+      ctx.fillText(subString, centerX, 1680);
     }
 
     ctx.restore();
@@ -439,7 +456,7 @@ export function ThreeCustomizerMockup() {
     return mesh;
   };
 
-  // 5. Initialize Three.js Scene (Desktop only — skipped completely on mobile)
+  // 5. Initialize Three.js Scene with Studio Lighting & Delineating Rim Lights
   useEffect(() => {
     if (isMobile) return;
     const container = mountRef.current;
@@ -464,7 +481,7 @@ export function ThreeCustomizerMockup() {
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.18;
     rendererRef.current = renderer;
     container.appendChild(renderer.domElement);
 
@@ -483,24 +500,33 @@ export function ThreeCustomizerMockup() {
     };
     controlsRef.current = controls;
 
-    // Studio Lighting Rig
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
+    // High-Definition Studio Lighting Rig with Silhouette Separation Rim Lighting
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
     scene.add(ambientLight);
 
-    const keyLight = new THREE.DirectionalLight(0xffffff, 2.5);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.8);
     keyLight.position.set(3.5, 5.5, 4.5);
     keyLight.castShadow = true;
     keyLight.shadow.mapSize.width = 1024;
     keyLight.shadow.mapSize.height = 1024;
     scene.add(keyLight);
 
-    const fillLight = new THREE.DirectionalLight(0xb0d4c8, 1.25);
+    const fillLight = new THREE.DirectionalLight(0xd2e3db, 1.4);
     fillLight.position.set(-4.5, 1.5, 3.5);
     scene.add(fillLight);
 
-    const backRimLight = new THREE.DirectionalLight(0xffffff, 2.0);
-    backRimLight.position.set(0, 4.5, -4.5);
+    // Back & Side Rim Lights: Crucial for making black and dark grey garments pop with razor-sharp silhouette edges!
+    const backRimLight = new THREE.DirectionalLight(0xffffff, 3.4);
+    backRimLight.position.set(0, 5, -5);
     scene.add(backRimLight);
+
+    const leftRimLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    leftRimLight.position.set(-5, 2, -3);
+    scene.add(leftRimLight);
+
+    const rightRimLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    rightRimLight.position.set(5, 2, -3);
+    scene.add(rightRimLight);
 
     // Soft Studio Ground Shadow
     const shadowGeo = new THREE.CircleGeometry(1.65, 64);
@@ -722,6 +748,32 @@ export function ThreeCustomizerMockup() {
     return jamiaHoodieImg;
   };
 
+  // Dynamic Background classes & spotlight styles based on backdropMode
+  const getBackdropStyles = () => {
+    if (backdropMode === 'light') {
+      return {
+        containerClass: 'bg-gradient-to-b from-[#ECE8DF] via-[#DFDAD0] to-[#CFCA stand-c]',
+        spotlight: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95) 0%, rgba(220,215,205,0.6) 50%, rgba(195,190,180,0.9) 100%)',
+        textColor: 'text-neutral-800'
+      };
+    }
+    if (backdropMode === 'dark') {
+      return {
+        containerClass: 'bg-gradient-to-b from-[#1A1F24] via-[#101316] to-[#0A0D0E]',
+        spotlight: 'radial-gradient(circle at 50% 45%, rgba(0,100,78,0.35) 0%, rgba(0,100,78,0.08) 55%, transparent 80%)',
+        textColor: 'text-white'
+      };
+    }
+    // Default 'studio' - High-contrast photographic studio grey (perfect separation for black & all colors)
+    return {
+      containerClass: 'bg-gradient-to-b from-[#384148] via-[#252B31] to-[#181D21]',
+      spotlight: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 50%, transparent 80%)',
+      textColor: 'text-white'
+    };
+  };
+
+  const backdrop = getBackdropStyles();
+
   return (
     <div className="bg-charcoal text-white rounded-xs border border-neutral-800 overflow-hidden shadow-2xl">
       {/* Top Header Bar */}
@@ -744,7 +796,7 @@ export function ThreeCustomizerMockup() {
           ) : (
             <>
               <Box className="w-4 h-4 text-green-primary" />
-              <span className="hidden xs:inline">Three.js PBR Engine</span>
+              <span className="hidden xs:inline">Three.js PBR Studio</span>
             </>
           )}
         </div>
@@ -753,13 +805,13 @@ export function ThreeCustomizerMockup() {
       {/* MOBILE-ONLY LIGHTWEIGHT PREVIEW (Screen < 1024px) */}
       {isMobile ? (
         <div className="p-4 sm:p-6 bg-neutral-950 space-y-5">
-          {/* Static Garment Card with Interactive Live Customization Badges */}
-          <div className="relative rounded-xs overflow-hidden border border-neutral-800 bg-neutral-900 shadow-xl">
-            {/* Ambient subtle glow */}
+          {/* Static Garment Card with High-Contrast Studio Backdrop */}
+          <div className="relative rounded-xs overflow-hidden border border-neutral-800 bg-[#252B31] shadow-xl">
+            {/* Center Studio Spotlight for crisp separation */}
             <div
-              className="absolute inset-0 opacity-20 pointer-events-none"
+              className="absolute inset-0 pointer-events-none"
               style={{
-                background: `radial-gradient(circle at 50% 40%, ${selectedColor.hex}, transparent 70%)`
+                background: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 55%, transparent 85%)'
               }}
             />
 
@@ -796,28 +848,28 @@ export function ThreeCustomizerMockup() {
             </div>
 
             {/* Garment Image Showcase */}
-            <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full overflow-hidden flex items-center justify-center bg-neutral-950/60">
+            <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full overflow-hidden flex items-center justify-center">
               <img
                 src={getMobileGarmentImage()}
                 alt="MerchX Collegiate Garment Preview"
                 className="w-full h-full object-contain p-4 transition-all duration-300"
               />
 
-              {/* Dynamic Live Typography Overlay Card */}
-              <div className="absolute inset-x-6 bottom-4 p-3 bg-neutral-950/90 backdrop-blur-md rounded-xs border border-neutral-800 shadow-2xl text-center">
+              {/* Massive Dynamic Live Typography Overlay Card */}
+              <div className="absolute inset-x-6 bottom-4 p-3.5 bg-neutral-950/95 backdrop-blur-md rounded-xs border border-neutral-800 shadow-2xl text-center">
                 {currentView === 'front' ? (
                   <div className="space-y-1">
                     <p
-                      className="font-heading text-xl sm:text-2xl font-black uppercase tracking-wider truncate"
+                      className="font-heading text-2xl sm:text-3xl font-black uppercase tracking-wider truncate"
                       style={{ color: selectedColor.textOnDark ? '#FFFFFF' : '#00644E' }}
                     >
                       {institutionName || 'JAMIA'}
                     </p>
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-neutral-300 truncate">
+                    <p className="text-xs sm:text-sm font-black uppercase tracking-widest text-neutral-200 truncate">
                       {subText || 'MILLIA ISLAMIA'}
                     </p>
                     <p
-                      className="text-[10px] font-mono tracking-widest font-semibold"
+                      className="text-[11px] font-mono tracking-widest font-bold"
                       style={{ color: selectedColor.accentText }}
                     >
                       ★ {estYear || 'EST. 1920'} ★
@@ -825,19 +877,17 @@ export function ThreeCustomizerMockup() {
                   </div>
                 ) : (
                   <div className="space-y-1">
-                    <p
-                      className="font-heading text-sm font-black uppercase tracking-widest text-neutral-300 truncate"
-                    >
+                    <p className="font-heading text-base font-black uppercase tracking-widest text-neutral-200 truncate">
                       {backName || 'JAMIA'}
                     </p>
                     <p
-                      className="font-heading text-3xl font-black tracking-tight"
+                      className="font-heading text-4xl sm:text-5xl font-black tracking-tight"
                       style={{ color: selectedColor.textOnDark ? '#FFFFFF' : '#00644E' }}
                     >
                       {backNumber || '20'}
                     </p>
                     <p
-                      className="text-[10px] font-mono uppercase tracking-widest"
+                      className="text-[11px] font-mono uppercase tracking-widest font-bold"
                       style={{ color: selectedColor.accentText }}
                     >
                       {backSub || 'NEW DELHI'}
@@ -850,7 +900,6 @@ export function ThreeCustomizerMockup() {
 
           {/* Mobile Customization Controls (Tabs & Inputs) */}
           <div className="bg-neutral-900 rounded-xs border border-neutral-800 p-4 space-y-4">
-            {/* Customizer Tabs */}
             <div className="grid grid-cols-3 gap-1 p-1 bg-neutral-950 rounded-xs border border-neutral-800">
               <button
                 type="button"
@@ -1001,7 +1050,7 @@ export function ThreeCustomizerMockup() {
                     <button
                       key={color.id}
                       type="button"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => handleSelectColor(color)}
                       className={`p-2 rounded-xs border flex flex-col items-center justify-center gap-1.5 transition-all ${
                         selectedColor.id === color.id
                           ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
@@ -1040,7 +1089,7 @@ export function ThreeCustomizerMockup() {
                     <button
                       key={color.id}
                       type="button"
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => handleSelectColor(color)}
                       className={`w-7 h-7 rounded-full border transition-transform ${
                         selectedColor.id === color.id
                           ? 'border-white scale-110 shadow-lg ring-1 ring-green-primary'
@@ -1077,12 +1126,15 @@ export function ThreeCustomizerMockup() {
           </div>
         </div>
       ) : (
-        /* DESKTOP-ONLY FULL 3D ENGINE (Screen >= 1024px — NO CHANGES TO DESKTOP VIEW) */
+        /* DESKTOP-ONLY FULL 3D ENGINE (Screen >= 1024px) */
         <div className="grid grid-cols-12 min-h-[660px]">
-          {/* Left: 3D Three.js Viewport (7 cols) */}
-          <div className="col-span-7 relative bg-gradient-to-b from-neutral-950 via-neutral-900 to-neutral-950 flex flex-col justify-between overflow-hidden">
-            {/* Subtle Ambient Radial Lighting */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(0,100,78,0.22),transparent_70%)] pointer-events-none" />
+          {/* Left: 3D Three.js Viewport (7 cols) with High-Contrast Studio Backdrop */}
+          <div className={`col-span-7 relative ${backdrop.containerClass} flex flex-col justify-between overflow-hidden transition-colors duration-300`}>
+            {/* Soft Studio Radial Spotlight (Delineates Black/Dark Garments with extreme clarity!) */}
+            <div
+              className="absolute inset-0 pointer-events-none transition-all duration-300"
+              style={{ background: backdrop.spotlight }}
+            />
 
             {/* Loading Indicator */}
             {loadingModel && (
@@ -1114,32 +1166,77 @@ export function ThreeCustomizerMockup() {
               title="Click and drag to orbit in 360°. Scroll to zoom."
             />
 
-            {/* Viewport Floating Top Controls: Auto Rotate & Current Angle Tag */}
-            <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
-              <button
-                type="button"
-                onClick={() => setAutoRotate(!autoRotate)}
-                className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
-                  autoRotate
-                    ? 'bg-green-primary text-white'
-                    : 'bg-neutral-800/90 text-neutral-300 hover:bg-neutral-700'
-                }`}
-              >
-                <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
-                <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
-              </button>
+            {/* Viewport Floating Top Controls: Auto Rotate, View Tag & Studio Backdrop Switcher */}
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+              <div className="flex items-center gap-2 pointer-events-auto">
+                <button
+                  type="button"
+                  onClick={() => setAutoRotate(!autoRotate)}
+                  className={`px-3 py-1.5 rounded-xs text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md ${
+                    autoRotate
+                      ? 'bg-green-primary text-white'
+                      : 'bg-neutral-900/90 text-neutral-300 hover:bg-neutral-800 border border-neutral-700/80'
+                  }`}
+                >
+                  <RotateCw className={`w-3.5 h-3.5 ${autoRotate ? 'animate-spin' : ''}`} />
+                  <span>Auto-Rotate {autoRotate ? 'On' : 'Off'}</span>
+                </button>
 
-              <span className="inline-flex items-center px-2 py-1 rounded-xs bg-neutral-900/80 text-neutral-400 text-[10px] font-mono uppercase tracking-widest border border-neutral-800">
-                View: {currentView.toUpperCase()}
-              </span>
+                <span className="inline-flex items-center px-2.5 py-1.5 rounded-xs bg-neutral-900/90 text-neutral-300 text-[10px] font-mono uppercase tracking-widest border border-neutral-700/80 shadow-md">
+                  View: {currentView.toUpperCase()}
+                </span>
+              </div>
+
+              {/* Studio Backdrop Mode Switcher (Ensures Black, Grey & All Colors Have Perfect Contrast!) */}
+              <div className="flex items-center gap-1 bg-neutral-900/90 p-1 rounded-xs border border-neutral-700/80 shadow-xl pointer-events-auto">
+                <span className="text-[10px] uppercase font-bold text-neutral-400 px-2 tracking-wider hidden xl:inline">
+                  Backdrop:
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setBackdropMode('studio')}
+                  className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    backdropMode === 'studio'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Studio Stage (Balanced Grey Cyclorama - High Visibility for Black Garments)"
+                >
+                  Studio Grey
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBackdropMode('light')}
+                  className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    backdropMode === 'light'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Light Gallery Stage (Maximum Contrast for Dark Garments)"
+                >
+                  Light Bone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBackdropMode('dark')}
+                  className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    backdropMode === 'dark'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Onyx Dark Stage"
+                >
+                  Onyx Dark
+                </button>
+              </div>
             </div>
 
             {/* Bottom Camera Angles & Orbit Guidance */}
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-neutral-400 z-10 pointer-events-none">
-              <span className="bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-800 text-[11px]">
+              <span className="bg-neutral-900/90 px-3 py-1.5 rounded-xs backdrop-blur-sm border border-neutral-700/80 text-[11px] text-neutral-300">
                 Drag to Orbit 360° · Scroll to Zoom
               </span>
-              <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-800 shadow-xl ml-auto">
+              <div className="flex items-center gap-1 pointer-events-auto bg-neutral-900/95 p-1 rounded-xs border border-neutral-700/80 shadow-xl ml-auto">
                 <button
                   type="button"
                   onClick={() => handleSetView('front')}
@@ -1465,7 +1562,7 @@ export function ThreeCustomizerMockup() {
                         <button
                           key={color.id}
                           type="button"
-                          onClick={() => setSelectedColor(color)}
+                          onClick={() => handleSelectColor(color)}
                           className={`p-2.5 rounded-xs border flex flex-col items-center justify-center gap-2 transition-all ${
                             selectedColor.id === color.id
                               ? 'bg-neutral-800 border-white ring-2 ring-green-primary'
@@ -1512,7 +1609,7 @@ export function ThreeCustomizerMockup() {
                       <button
                         key={color.id}
                         type="button"
-                        onClick={() => setSelectedColor(color)}
+                        onClick={() => handleSelectColor(color)}
                         className={`w-8 h-8 rounded-full border-2 transition-transform ${
                           selectedColor.id === color.id
                             ? 'border-white scale-110 shadow-lg ring-2 ring-green-primary'
