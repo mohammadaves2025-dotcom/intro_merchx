@@ -26,6 +26,10 @@ import {
   Contrast
 } from 'lucide-react';
 
+// Module-level global caches (persists across page navigations in memory for 0ms re-renders)
+const gltfCache = new Map();
+const decalGeoCache = new Map();
+
 const GARMENT_MODELS = [
   {
     id: 'hoodie',
@@ -34,12 +38,12 @@ const GARMENT_MODELS = [
     fabric: '380 GSM Organic Cotton Fleece',
     file: '/models/hoodie.glb',
     scaleMultiplier: 1.0,
-    frontCenterY: -0.17,
-    frontWidth: 0.62,
-    frontHeight: 0.52,
-    backCenterY: -0.16,
-    backWidth: 0.62,
-    backHeight: 0.62
+    frontCenterY: -0.13,
+    frontWidth: 0.88,
+    frontHeight: 0.72,
+    backCenterY: -0.12,
+    backWidth: 0.88,
+    backHeight: 0.88
   },
   {
     id: 'shirt',
@@ -48,12 +52,12 @@ const GARMENT_MODELS = [
     fabric: '240 GSM Combed Ring-Spun Cotton',
     file: '/models/shirt_baked.glb',
     scaleMultiplier: 1.0,
-    frontCenterY: 0.05,
-    frontWidth: 0.54,
-    frontHeight: 0.48,
+    frontCenterY: 0.06,
+    frontWidth: 0.72,
+    frontHeight: 0.62,
     backCenterY: 0.08,
-    backWidth: 0.54,
-    backHeight: 0.54
+    backWidth: 0.74,
+    backHeight: 0.74
   }
 ];
 
@@ -115,8 +119,8 @@ export function ThreeCustomizerMockup() {
   const [activeGarment, setActiveGarment] = useState(GARMENT_MODELS[0]);
   const [selectedColor, setSelectedColor] = useState(COLOR_SWATCHES[0]);
 
-  // Studio Backdrop Mode: 'studio' (Balanced Neutral Grey) | 'light' (Clean White/Bone) | 'dark' (Onyx)
-  const [backdropMode, setBackdropMode] = useState('studio');
+  // Studio Backdrop Mode: 'light' (Professional Studio Cyclorama - Default!) | 'studio' (Neutral Grey) | 'dark' (Onyx)
+  const [backdropMode, setBackdropMode] = useState('light');
 
   // Mobile detection: screen width < 1024px
   const [isMobile, setIsMobile] = useState(() => {
@@ -170,11 +174,11 @@ export function ThreeCustomizerMockup() {
     autoRotateRef.current = autoRotate;
   }, [autoRotate]);
 
-  // Auto-switch away from dark backdrop when black or dark garments are selected
+  // Auto-switch to light studio when black or dark garments are selected on a dark backdrop
   const handleSelectColor = (color) => {
     setSelectedColor(color);
     if ((color.id === 'black' || color.id === 'navy' || color.id === 'crimson') && backdropMode === 'dark') {
-      setBackdropMode('studio');
+      setBackdropMode('light');
     }
   };
 
@@ -198,19 +202,19 @@ export function ThreeCustomizerMockup() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Massive Arched Collegiate Top Text (Colossal 420px - 480px font)
+    // Massive Arched Collegiate Top Text (Colossal 560px - 700px font, +100% enlargement)
     const textToArch = (name || 'JAMIA').toUpperCase().trim();
     if (textToArch.length > 0) {
-      const archRadius = 620;
-      // Tight, continuous athletic arch so letters hug closely together
-      const maxSpread = Math.PI * 0.60;
-      const minSpread = Math.PI * 0.42;
-      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (textToArch.length * 0.052) * Math.PI));
+      const archRadius = 780;
+      // Tight athletic arch so letters span proudly across the entire chest
+      const maxSpread = Math.PI * 0.68;
+      const minSpread = Math.PI * 0.46;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (textToArch.length * 0.060) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = textToArch.length > 1 ? totalAngle / (textToArch.length - 1) : 0;
 
-      // True 100% enlarged font size: 360px - 460px
-      const fontSize = textToArch.length > 10 ? 340 : textToArch.length > 6 ? 400 : 460;
+      // 100% enlarged font size: 520px - 700px
+      const fontSize = textToArch.length > 10 ? 520 : textToArch.length > 6 ? 620 : 700;
       ctx.font = `900 ${fontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < textToArch.length; i++) {
@@ -218,13 +222,13 @@ export function ThreeCustomizerMockup() {
         const angle = textToArch.length === 1 ? -Math.PI / 2 : startAngle + i * angleStep;
 
         ctx.save();
-        ctx.translate(centerX, centerY + 200);
+        ctx.translate(centerX, centerY + 300);
         ctx.rotate(angle + Math.PI / 2);
         ctx.translate(0, -archRadius);
 
         // Heavy athletic drop/outline border
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 42;
+        ctx.lineWidth = 56;
         ctx.lineJoin = 'miter';
         ctx.miterLimit = 2;
         ctx.strokeText(char, 0, 0);
@@ -236,31 +240,31 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Subtitle Text (Colossal 180px - 210px font)
+    // Subtitle Text (Colossal 260px - 320px font, +100% enlargement)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      const subFontSize = subString.length > 14 ? 160 : 190;
+      const subFontSize = subString.length > 14 ? 260 : 320;
       ctx.font = `900 ${subFontSize}px "Barlow Condensed", -apple-system, sans-serif`;
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 26;
-      ctx.strokeText(subString, centerX, 1020);
+      ctx.lineWidth = 36;
+      ctx.strokeText(subString, centerX, 1080);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(subString, centerX, 1020);
+      ctx.fillText(subString, centerX, 1080);
     }
 
-    // Established Year or Tag (Colossal 96px font)
+    // Established Year or Tag (Colossal 160px font, +100% enlargement)
     if (year && year.trim().length > 0) {
       const yearString = year.toUpperCase().trim();
-      ctx.font = '800 96px "Inter", -apple-system, sans-serif';
+      ctx.font = '800 160px "Inter", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 14;
-      ctx.strokeText(`★  ${yearString}  ★`, centerX, 1220);
+      ctx.lineWidth = 20;
+      ctx.strokeText(`★  ${yearString}  ★`, centerX, 1340);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(`★  ${yearString}  ★`, centerX, 1220);
+      ctx.fillText(`★  ${yearString}  ★`, centerX, 1340);
     }
 
     ctx.restore();
@@ -273,7 +277,7 @@ export function ThreeCustomizerMockup() {
   };
 
   // 2. Generate High-Resolution Back Varsity Canvas Texture
-  // Massive 950px tall athletic numbers and 360px player arch
+  // Massive 1400px tall athletic numbers and 540px player arch (+100% enlargement)
   const createBackTexture = (color, name, number, sub) => {
     const canvas = document.createElement('canvas');
     canvas.width = 2048;
@@ -292,17 +296,17 @@ export function ThreeCustomizerMockup() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Top Player/Institution Arch on upper back (Massive 340px - 380px font)
+    // Top Player/Institution Arch on upper back (Massive 460px - 540px font, +100% enlargement)
     const nameString = (name || 'JAMIA').toUpperCase().trim();
     if (nameString.length > 0) {
-      const archRadius = 720;
-      const maxSpread = Math.PI * 0.54;
-      const minSpread = Math.PI * 0.38;
-      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.050) * Math.PI));
+      const archRadius = 820;
+      const maxSpread = Math.PI * 0.62;
+      const minSpread = Math.PI * 0.44;
+      const totalAngle = Math.min(maxSpread, Math.max(minSpread, (nameString.length * 0.058) * Math.PI));
       const startAngle = -Math.PI / 2 - totalAngle / 2;
       const angleStep = nameString.length > 1 ? totalAngle / (nameString.length - 1) : 0;
 
-      const nameFontSize = nameString.length > 10 ? 300 : 360;
+      const nameFontSize = nameString.length > 10 ? 460 : 540;
       ctx.font = `900 ${nameFontSize}px "Barlow Condensed", "Impact", -apple-system, sans-serif`;
 
       for (let i = 0; i < nameString.length; i++) {
@@ -315,7 +319,7 @@ export function ThreeCustomizerMockup() {
         ctx.translate(0, -archRadius);
 
         ctx.strokeStyle = outlineColor;
-        ctx.lineWidth = 36;
+        ctx.lineWidth = 48;
         ctx.strokeText(char, 0, 0);
 
         ctx.fillStyle = textColor;
@@ -324,35 +328,35 @@ export function ThreeCustomizerMockup() {
       }
     }
 
-    // Colossal Collegiate Varsity Back Number (Massive 950px height!)
+    // Colossal Collegiate Varsity Back Number (Colossal 1400px height, +100% enlargement!)
     if (number && number.trim().length > 0) {
       const numString = number.trim();
-      ctx.font = '900 950px "Barlow Condensed", "Impact", -apple-system, sans-serif';
+      ctx.font = '900 1400px "Barlow Condensed", "Impact", -apple-system, sans-serif';
 
       // Heavy 2-Tone Varsity Outline
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 64;
-      ctx.strokeText(numString, centerX, 1100);
+      ctx.lineWidth = 84;
+      ctx.strokeText(numString, centerX, 1140);
 
       ctx.strokeStyle = accentColor;
-      ctx.lineWidth = 30;
-      ctx.strokeText(numString, centerX, 1100);
+      ctx.lineWidth = 38;
+      ctx.strokeText(numString, centerX, 1140);
 
       ctx.fillStyle = textColor;
-      ctx.fillText(numString, centerX, 1100);
+      ctx.fillText(numString, centerX, 1140);
     }
 
-    // Bottom Subtitle (Colossal 130px font)
+    // Bottom Subtitle (Colossal 220px font, +100% enlargement)
     if (sub && sub.trim().length > 0) {
       const subString = sub.toUpperCase().trim();
-      ctx.font = '800 130px "Barlow Condensed", -apple-system, sans-serif';
+      ctx.font = '800 220px "Barlow Condensed", -apple-system, sans-serif';
 
       ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = 20;
-      ctx.strokeText(subString, centerX, 1680);
+      ctx.lineWidth = 28;
+      ctx.strokeText(subString, centerX, 1800);
 
       ctx.fillStyle = accentColor;
-      ctx.fillText(subString, centerX, 1680);
+      ctx.fillText(subString, centerX, 1800);
     }
 
     ctx.restore();
@@ -402,40 +406,48 @@ export function ThreeCustomizerMockup() {
     });
   };
 
-  // 4. Build Surface-Conforming Decal Mesh via Raycasting (Desktop only)
+  // 4. Build Surface-Conforming Decal Mesh via Raycasting (Desktop only, cached for 0ms transitions)
   const createConformingDecal = (garment, modelWrapper, targetMeshes, isFront, texture, scale) => {
-    const width = isFront ? garment.frontWidth : garment.backWidth;
-    const height = isFront ? garment.frontHeight : garment.backHeight;
-    const centerY = isFront ? garment.frontCenterY : garment.backCenterY;
-    const segs = 28;
+    const cacheKey = `${garment.id}_${isFront ? 'front' : 'back'}_${garment.scaleMultiplier}_${garment.frontWidth}_${garment.frontHeight}`;
+    let geo;
 
-    const geo = new THREE.PlaneGeometry(width, height, segs, segs);
-    const posAttr = geo.attributes.position;
-    const raycaster = new THREE.Raycaster();
-    const origin = new THREE.Vector3();
-    const dir = new THREE.Vector3(0, 0, isFront ? -1 : 1);
+    if (decalGeoCache.has(cacheKey)) {
+      geo = decalGeoCache.get(cacheKey).clone();
+    } else {
+      const width = isFront ? garment.frontWidth : garment.backWidth;
+      const height = isFront ? garment.frontHeight : garment.backHeight;
+      const centerY = isFront ? garment.frontCenterY : garment.backCenterY;
+      const segs = 28;
 
-    // Normal offset in model-local units
-    const normalOffset = (isFront ? 0.0035 : -0.0035) / (scale || 1.0);
+      geo = new THREE.PlaneGeometry(width, height, segs, segs);
+      const posAttr = geo.attributes.position;
+      const raycaster = new THREE.Raycaster();
+      const origin = new THREE.Vector3();
+      const dir = new THREE.Vector3(0, 0, isFront ? -1 : 1);
 
-    for (let i = 0; i < posAttr.count; i++) {
-      const lx = isFront ? posAttr.getX(i) : -posAttr.getX(i);
-      const ly = posAttr.getY(i);
+      // Normal offset in model-local units
+      const normalOffset = (isFront ? 0.0035 : -0.0035) / (scale || 1.0);
 
-      const wx = lx;
-      const wy = centerY + ly;
-      origin.set(wx, wy, isFront ? 1.5 : -1.5);
-      raycaster.set(origin, dir);
+      for (let i = 0; i < posAttr.count; i++) {
+        const lx = isFront ? posAttr.getX(i) : -posAttr.getX(i);
+        const ly = posAttr.getY(i);
 
-      const intersects = raycaster.intersectObjects(targetMeshes, false);
-      if (intersects.length > 0) {
-        const hit = intersects[0];
-        const localPt = modelWrapper.worldToLocal(hit.point.clone());
-        posAttr.setXYZ(i, localPt.x, localPt.y, localPt.z + normalOffset);
+        const wx = lx;
+        const wy = centerY + ly;
+        origin.set(wx, wy, isFront ? 1.5 : -1.5);
+        raycaster.set(origin, dir);
+
+        const intersects = raycaster.intersectObjects(targetMeshes, false);
+        if (intersects.length > 0) {
+          const hit = intersects[0];
+          const localPt = modelWrapper.worldToLocal(hit.point.clone());
+          posAttr.setXYZ(i, localPt.x, localPt.y, localPt.z + normalOffset);
+        }
       }
-    }
 
-    geo.computeVertexNormals();
+      geo.computeVertexNormals();
+      decalGeoCache.set(cacheKey, geo.clone());
+    }
 
     const mat = new THREE.MeshStandardMaterial({
       map: texture,
@@ -591,7 +603,7 @@ export function ThreeCustomizerMockup() {
     };
   }, [isMobile]);
 
-  // 6. Load 3D Garment Model (Desktop only — 0 MB download on mobile)
+  // 6. Load 3D Garment Model (Desktop only — Cached in memory for instant 0ms switching)
   useEffect(() => {
     if (isMobile) return;
     const scene = sceneRef.current;
@@ -607,59 +619,78 @@ export function ThreeCustomizerMockup() {
     frontDecalMeshRef.current = null;
     backDecalMeshRef.current = null;
 
+    const setupModel = (gltf) => {
+      // Clone model hierarchy so material changes are safely isolated
+      const model = gltf.scene.clone(true);
+
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+
+      model.position.x = -center.x;
+      model.position.y = -center.y;
+      model.position.z = -center.z;
+
+      const maxAxis = Math.max(size.x, size.y, size.z);
+      const targetSize = 2.15 * activeGarment.scaleMultiplier;
+      const scale = targetSize / maxAxis;
+
+      const modelWrapper = new THREE.Group();
+      modelWrapper.scale.set(scale, scale, scale);
+      modelWrapper.add(model);
+      modelWrapper.position.y = 0;
+      modelWrapper.updateMatrixWorld(true);
+
+      const clothMeshes = [];
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.receiveShadow = true;
+          if (child.material) {
+            child.material = child.material.clone();
+          }
+          clothMeshes.push(child);
+        }
+      });
+
+      // 1. Front Conforming Decal
+      const frontTex = createFrontTexture(selectedColor, institutionName, subText, estYear);
+      const frontMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, true, frontTex, scale);
+      modelWrapper.add(frontMesh);
+      frontDecalMeshRef.current = frontMesh;
+
+      // 2. Back Conforming Decal
+      const backTex = createBackTexture(selectedColor, backName, backNumber, backSub);
+      const backMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, false, backTex, scale);
+      backMesh.visible = enableBackPrint;
+      modelWrapper.add(backMesh);
+      backDecalMeshRef.current = backMesh;
+
+      // Apply realistic dyed fleece color
+      applyColorToModel(model, selectedColor.hex);
+
+      scene.add(modelWrapper);
+      currentModelRef.current = modelWrapper;
+      setLoadingModel(false);
+    };
+
+    // If model GLTF is already in memory cache, mount instantly with 0ms delay!
+    if (gltfCache.has(activeGarment.file)) {
+      try {
+        setupModel(gltfCache.get(activeGarment.file));
+        return;
+      } catch (cacheErr) {
+        console.warn('Cache instantiation error, falling back to network fetch:', cacheErr);
+      }
+    }
+
     const loader = new GLTFLoader();
 
     loader.load(
       activeGarment.file,
       (gltf) => {
-        const model = gltf.scene;
-
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        model.position.x = -center.x;
-        model.position.y = -center.y;
-        model.position.z = -center.z;
-
-        const maxAxis = Math.max(size.x, size.y, size.z);
-        const targetSize = 2.15 * activeGarment.scaleMultiplier;
-        const scale = targetSize / maxAxis;
-
-        const modelWrapper = new THREE.Group();
-        modelWrapper.scale.set(scale, scale, scale);
-        modelWrapper.add(model);
-        modelWrapper.position.y = 0;
-        modelWrapper.updateMatrixWorld(true);
-
-        const clothMeshes = [];
-        model.traverse((child) => {
-          if (child.isMesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            clothMeshes.push(child);
-          }
-        });
-
-        // 1. Front Conforming Decal
-        const frontTex = createFrontTexture(selectedColor, institutionName, subText, estYear);
-        const frontMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, true, frontTex, scale);
-        modelWrapper.add(frontMesh);
-        frontDecalMeshRef.current = frontMesh;
-
-        // 2. Back Conforming Decal
-        const backTex = createBackTexture(selectedColor, backName, backNumber, backSub);
-        const backMesh = createConformingDecal(activeGarment, modelWrapper, clothMeshes, false, backTex, scale);
-        backMesh.visible = enableBackPrint;
-        modelWrapper.add(backMesh);
-        backDecalMeshRef.current = backMesh;
-
-        // Apply realistic dyed fleece color
-        applyColorToModel(model, selectedColor.hex);
-
-        scene.add(modelWrapper);
-        currentModelRef.current = modelWrapper;
-        setLoadingModel(false);
+        gltfCache.set(activeGarment.file, gltf);
+        setupModel(gltf);
       },
       undefined,
       (err) => {
@@ -750,25 +781,31 @@ export function ThreeCustomizerMockup() {
 
   // Dynamic Background classes & spotlight styles based on backdropMode
   const getBackdropStyles = () => {
-    if (backdropMode === 'light') {
+    if (backdropMode === 'studio') {
       return {
-        containerClass: 'bg-gradient-to-b from-[#ECE8DF] via-[#DFDAD0] to-[#CFCA stand-c]',
-        spotlight: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95) 0%, rgba(220,215,205,0.6) 50%, rgba(195,190,180,0.9) 100%)',
-        textColor: 'text-neutral-800'
+        id: 'studio',
+        name: 'Neutral Grey',
+        containerClass: 'bg-gradient-to-b from-[#8E97A4] via-[#6D7784] to-[#4F5864]',
+        spotlight: 'radial-gradient(circle at 50% 40%, rgba(255,255,255,0.40) 0%, rgba(255,255,255,0.10) 55%, transparent 85%)',
+        textColor: 'text-white'
       };
     }
     if (backdropMode === 'dark') {
       return {
-        containerClass: 'bg-gradient-to-b from-[#1A1F24] via-[#101316] to-[#0A0D0E]',
-        spotlight: 'radial-gradient(circle at 50% 45%, rgba(0,100,78,0.35) 0%, rgba(0,100,78,0.08) 55%, transparent 80%)',
+        id: 'dark',
+        name: 'Onyx Dark',
+        containerClass: 'bg-gradient-to-b from-[#1C2126] via-[#111518] to-[#0A0C0E]',
+        spotlight: 'radial-gradient(circle at 50% 40%, rgba(0,100,78,0.30) 0%, rgba(0,100,78,0.06) 55%, transparent 85%)',
         textColor: 'text-white'
       };
     }
-    // Default 'studio' - High-contrast photographic studio grey (perfect separation for black & all colors)
+    // Default 'light' - Professional Architectural Studio Cyclorama (Optimal for black, grey & all garments)
     return {
-      containerClass: 'bg-gradient-to-b from-[#384148] via-[#252B31] to-[#181D21]',
-      spotlight: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 50%, transparent 80%)',
-      textColor: 'text-white'
+      id: 'light',
+      name: 'Light Studio',
+      containerClass: 'bg-gradient-to-b from-[#F7F8FA] via-[#EEF0F4] to-[#DFE3E9]',
+      spotlight: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.98) 0%, rgba(235,239,245,0.65) 50%, rgba(210,216,226,0.95) 100%)',
+      textColor: 'text-neutral-900'
     };
   };
 
@@ -806,12 +843,16 @@ export function ThreeCustomizerMockup() {
       {isMobile ? (
         <div className="p-4 sm:p-6 bg-neutral-950 space-y-5">
           {/* Static Garment Card with High-Contrast Studio Backdrop */}
-          <div className="relative rounded-xs overflow-hidden border border-neutral-800 bg-[#252B31] shadow-xl">
+          <div className={`relative rounded-xs overflow-hidden border border-neutral-700/80 shadow-xl transition-colors duration-300 ${
+            selectedColor.id === 'white' ? 'bg-[#252B31]' : 'bg-[#EAECEF]'
+          }`}>
             {/* Center Studio Spotlight for crisp separation */}
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
-                background: 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 55%, transparent 85%)'
+                background: selectedColor.id === 'white'
+                  ? 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.06) 55%, transparent 85%)'
+                  : 'radial-gradient(circle at 50% 45%, rgba(255,255,255,0.95) 0%, rgba(230,235,242,0.6) 55%, transparent 85%)'
               }}
             />
 
@@ -1194,27 +1235,27 @@ export function ThreeCustomizerMockup() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setBackdropMode('studio')}
-                  className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
-                    backdropMode === 'studio'
-                      ? 'bg-green-primary text-white'
-                      : 'text-neutral-400 hover:text-white'
-                  }`}
-                  title="Studio Stage (Balanced Grey Cyclorama - High Visibility for Black Garments)"
-                >
-                  Studio Grey
-                </button>
-                <button
-                  type="button"
                   onClick={() => setBackdropMode('light')}
                   className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
                     backdropMode === 'light'
                       ? 'bg-green-primary text-white'
                       : 'text-neutral-400 hover:text-white'
                   }`}
-                  title="Light Gallery Stage (Maximum Contrast for Dark Garments)"
+                  title="Light Studio Cyclorama (Optimal Contrast for Black & Dark Garments)"
                 >
-                  Light Bone
+                  Light Studio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBackdropMode('studio')}
+                  className={`px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-xs transition-colors ${
+                    backdropMode === 'studio'
+                      ? 'bg-green-primary text-white'
+                      : 'text-neutral-400 hover:text-white'
+                  }`}
+                  title="Photographic Neutral Grey Stage"
+                >
+                  Neutral Grey
                 </button>
                 <button
                   type="button"

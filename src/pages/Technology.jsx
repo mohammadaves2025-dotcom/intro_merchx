@@ -6,8 +6,12 @@ import { Section } from '@/components/ui/Section';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Reveal } from '@/components/ui/Reveal';
-import { ThreeCustomizerMockup } from '@/components/sections/ThreeCustomizerMockup';
 import { Cpu, Box, Sparkles, Layers, Sliders, CheckCircle2 } from 'lucide-react';
+
+// Lazy-load heavy Three.js customizer for instant page mount
+const ThreeCustomizerMockup = React.lazy(() =>
+  import('@/components/sections/ThreeCustomizerMockup').then((m) => ({ default: m.ThreeCustomizerMockup }))
+);
 
 const techPillars = [
   {
@@ -62,7 +66,19 @@ export default function Technology() {
 
           <div className="mt-12">
             <Reveal>
-              <ThreeCustomizerMockup />
+              <React.Suspense
+                fallback={
+                  <div className="bg-charcoal text-white rounded-xs border border-neutral-800 p-12 min-h-[500px] flex flex-col items-center justify-center space-y-4 shadow-2xl">
+                    <div className="w-10 h-10 border-4 border-green-primary border-t-transparent rounded-full animate-spin" />
+                    <p className="font-heading text-sm uppercase tracking-wider font-bold text-white">
+                      Loading 3D Collegiate Customizer Studio...
+                    </p>
+                    <p className="text-xs text-neutral-400">Initializing WebGL apparel engine</p>
+                  </div>
+                }
+              >
+                <ThreeCustomizerMockup />
+              </React.Suspense>
             </Reveal>
           </div>
         </Container>
